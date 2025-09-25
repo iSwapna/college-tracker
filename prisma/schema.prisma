@@ -1,0 +1,76 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PRISMA_DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String?
+  applications Application[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("users")
+}
+
+model Program {
+  id           String        @id @default(cuid())
+  programName  String
+  deadline     DateTime
+  website      String
+  applications Application[]
+
+  @@map("programs")
+}
+
+model TaskType {
+  id          String @id @default(cuid())
+  type        String @unique // 'essay-draft', 'essay-final', 'timebox', 'notification'
+  defaultTime Int? // in hours: timebox=2, draft=2, final=1, notification=null
+  tasks       Task[]
+
+  @@map("task_types")
+}
+
+model Application {
+  id         String   @id @default(cuid())
+  userId     String
+  programId  String?
+  schoolName String
+  deadline   DateTime
+  status     String   @default("not_started") // not_started, in_progress, completed
+  tasks      Task[]
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  program    Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("applications")
+}
+
+model Task {
+  id            String      @id @default(cuid())
+  applicationId String
+  taskTypeId    String
+  title         String
+  description   String?
+  status        String      @default("pending") // pending, in_progress, completed, overdue
+  dueDate       DateTime?
+  timeEstimate  Int? // in hours
+  completedAt   DateTime?
+  globalOrder   Int? // for flexible ordering across applications
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  taskType      TaskType    @relation(fields: [taskTypeId], references: [id])
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("tasks")
+}
