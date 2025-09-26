@@ -13,8 +13,7 @@ export async function getUserApplicationsWithProgress(userId: string) {
 	return await prisma.application.findMany({
 		where: { userId },
 		include: {
-			tasks: true,
-			program: true
+			tasks: true
 		},
 		orderBy: { deadline: 'asc' }
 	});
@@ -85,7 +84,6 @@ export async function getApplicationWithTasks(applicationId: string) {
 					{ createdAt: 'asc' }
 				]
 			},
-			program: true,
 			user: true
 		}
 	});
@@ -104,7 +102,6 @@ export async function updateTaskStatus(taskId: string, status: string) {
 
 export async function createApplication(data: {
 	userId: string;
-	programId?: string;
 	schoolName: string;
 	deadline: Date;
 	tasks?: Array<{
@@ -118,7 +115,6 @@ export async function createApplication(data: {
 	return await prisma.application.create({
 		data: {
 			userId: data.userId,
-			programId: data.programId,
 			schoolName: data.schoolName,
 			deadline: data.deadline,
 			tasks: data.tasks ? {
@@ -126,8 +122,7 @@ export async function createApplication(data: {
 			} : undefined
 		},
 		include: {
-			tasks: true,
-			program: true
+			tasks: true
 		}
 	});
 }

@@ -1,64 +1,23 @@
 <script lang="ts">
 	import Header from '$lib/Header.svelte';
-
-	export interface SavedApplication {
-		id: string;
-		school_name: string;
-		program_id: string;
-		status: string;
-		created_at: string;
-		deadline: string;
-		tasks?: {
-			title: string;
-			status: boolean;
-			time_estimate?: number;
-		}[];
-	}
+	import type { SavedApplication } from '$lib/types';
 
 
-	interface Props {
-		savedApplications: SavedApplication[];
-		showAddForm: boolean;
-		showDeleteConfirm: boolean;
-		deleteTarget: { name: string; type: 'selected' | 'saved' } | null;
-		newSchoolName: string;
-		newSchoolDeadline: string;
-		newSchoolUrl: string;
-		updateNewSchoolName: (value: string) => void;
-		updateNewSchoolDeadline: (value: string) => void;
-		updateNewSchoolUrl: (value: string) => void;
-		addSchool: () => void;
-		toggleAddForm: () => void;
-		getOverallTimeSummary: () => { totalTime: number; remainingTasks: number; hasIncompleteTasks: boolean; completedTasks: number; totalTasks: number; percentage: number };
-		getApplicationProgress: (app: SavedApplication) => { completed: number; total: number; percentage: number };
-		editPlan: (schoolName: string) => void;
-		makePlan: (schoolName: string) => void;
-		confirmDelete: (schoolName: string) => void;
-		cancelDelete: () => void;
-		confirmDeleteAction: () => void;
-	}
-	
-	let {
-		savedApplications,
-		showAddForm,
-		showDeleteConfirm,
-		deleteTarget,
-		newSchoolName,
-		newSchoolDeadline,
-		newSchoolUrl,
-		updateNewSchoolName,
-		updateNewSchoolDeadline,
-		updateNewSchoolUrl,
-		addSchool,
-		toggleAddForm,
-		getOverallTimeSummary,
-		getApplicationProgress,
-		editPlan,
-		makePlan,
-		confirmDelete,
-		cancelDelete,
-		confirmDeleteAction,
-	}: Props = $props();
+	export let savedApplications: SavedApplication[];
+	export let showAddForm: boolean;
+	export let showDeleteConfirm: boolean;
+	export let deleteTarget: string | null;
+	export let newSchoolName: string;
+	export let newSchoolDeadline: string;
+	export let newSchoolUrl: string;
+	export let addSchool: () => void;
+	export let toggleAddForm: () => void;
+	export let getOverallTimeSummary: () => { totalTime: number; remainingTasks: number; hasIncompleteTasks: boolean; completedTasks: number; totalTasks: number; percentage: number };
+	export let getApplicationProgress: (app: SavedApplication) => { completed: number; total: number; percentage: number };
+	export let editPlan: (schoolName: string) => void;
+	export let confirmDelete: (schoolName: string) => void;
+	export let cancelDelete: () => void;
+	export let confirmDeleteAction: () => void;
 </script>
 
 <div class="min-h-screen bg-white relative">
@@ -82,30 +41,30 @@
 					<h3 class="text-lg font-semibold mb-4">Add New School</h3>
 					<div class="space-y-4">
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">School Name</label>
+							<label for="school-name" class="block text-sm font-medium text-gray-700 mb-1">School Name</label>
 							<input
+								id="school-name"
 								type="text"
-								value={newSchoolName}
-								oninput={(e) => updateNewSchoolName((e.target as HTMLInputElement).value)}
+								bind:value={newSchoolName}
 								class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-400 focus:border-transparent"
 								placeholder="Enter school name"
 							/>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Application Deadline</label>
+							<label for="school-deadline" class="block text-sm font-medium text-gray-700 mb-1">Application Deadline</label>
 							<input
+								id="school-deadline"
 								type="date"
-								value={newSchoolDeadline}
-								oninput={(e) => updateNewSchoolDeadline((e.target as HTMLInputElement).value)}
+								bind:value={newSchoolDeadline}
 								class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-400 focus:border-transparent"
 							/>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Application URL (optional)</label>
+							<label for="school-url" class="block text-sm font-medium text-gray-700 mb-1">Application URL (optional)</label>
 							<input
+								id="school-url"
 								type="url"
-								value={newSchoolUrl}
-								oninput={(e) => updateNewSchoolUrl((e.target as HTMLInputElement).value)}
+								bind:value={newSchoolUrl}
 								class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-400 focus:border-transparent"
 								placeholder="https://school.edu/apply"
 							/>
@@ -248,7 +207,7 @@
 			<div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl border-2 border-gray-300">
 				<h3 class="text-lg font-semibold mb-4">Confirm Delete</h3>
 				<p class="text-gray-600 mb-6">
-					Are you sure you want to delete <strong>{deleteTarget.name}</strong>? 
+					Are you sure you want to delete <strong>{deleteTarget}</strong>? 
 					You will lose any saved progress.
 				</p>
 				<div class="flex gap-3 justify-end">

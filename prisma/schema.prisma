@@ -21,15 +21,6 @@ model User {
   @@map("users")
 }
 
-model Program {
-  id           String        @id @default(cuid())
-  programName  String
-  deadline     DateTime
-  website      String
-  applications Application[]
-
-  @@map("programs")
-}
 
 model TaskType {
   id          String @id @default(cuid())
@@ -43,13 +34,11 @@ model TaskType {
 model Application {
   id         String   @id @default(cuid())
   userId     String
-  programId  String?
   schoolName String
   deadline   DateTime
   status     String   @default("not_started") // not_started, in_progress, completed
   tasks      Task[]
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  program    Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

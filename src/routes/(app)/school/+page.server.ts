@@ -1,21 +1,14 @@
-import { getUserApplicationsWithProgress } from '$lib/prisma';
-import { prisma } from '$lib/prisma';
+import { getUserApplicationsWithProgress, createApplication } from '$lib/prisma';
+import { fail } from '@sveltejs/kit';
 
 export const load = async () => {
 	// Using demo user for now - in real app this would come from session
 	const demoUserId = 'cmfyzo7xh0004zufl08jtcc5i'; // From your seed data
 
 	try {
-		// Get all programs (these are your "schools" to select from)
-		const programs = await prisma.program.findMany({
-			orderBy: { programName: 'asc' }
-		});
-
-		// Transform programs to match the SchoolOption interface
-		const allSchools = programs.map(program => ({
-			name: program.programName,
-			program_id: program.id
-		}));
+		// For now, return empty schools array since we removed the Program model
+		// In a real app, you might want to maintain a list of schools separately
+		const allSchools: Array<{name: string, program_id: string}> = [];
 
 		// Get user's saved applications with task data
 		const applications = await getUserApplicationsWithProgress(demoUserId);
@@ -24,7 +17,7 @@ export const load = async () => {
 		const savedApplications = applications.map(app => ({
 			id: app.id,
 			school_name: app.schoolName,
-			program_id: app.programId || '',
+			program_id: '',
 			status: app.status,
 			created_at: app.createdAt.toISOString(),
 			deadline: app.deadline.toISOString(),
@@ -48,5 +41,43 @@ export const load = async () => {
 			savedApplications: [],
 			initialSelectedSchools: []
 		};
+	}
+};
+
+export const actions = {
+	addSchool: async ({ request }) => {
+		const formData = await request.formData();
+		const schoolName = formData.get('schoolName') as string;
+		const deadline = formData.get('deadline') as string;
+		
+		if (!schoolName?.trim()) {
+			return fail(400, { error: 'School name is required' });
+		}
+
+		try {
+			// Using demo user for now - in real app this would come from session
+			const demoUserId = 'cmfyzo7xh0004zufl08jtcc5i';
+			
+			// Check if school already exists for this user
+			const existingApplications = await getUserApplicationsWithProgress(demoUserId);
+			const duplicate = existingApplications.find(app => 
+				app.schoolName.toLowerCase() === schoolName.trim().toLowerCase()
+			);
+			
+			if (duplicate) {
+				return fail(400, { error: 'School already exists in your applications' });
+			}
+			
+			const application = await createApplication({
+				userId: demoUserId,
+				schoolName: schoolName.trim(),
+				deadline: deadline ? new Date(deadline) : new Date()
+			});
+
+			return { success: true, application };
+		} catch (error) {
+			console.error('Error creating application:', error);
+			return fail(500, { error: 'Failed to create application' });
+		}
 	}
 };

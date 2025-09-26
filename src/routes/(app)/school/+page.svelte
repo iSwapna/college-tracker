@@ -1,5 +1,6 @@
 <script lang="ts">
-	import SchoolPage, { type SavedApplication } from '$lib/components/SchoolPage.svelte';
+	import SchoolPage from '$lib/components/SchoolPage.svelte';
+	import type { SavedApplication } from '$lib/types';
 	import { goto } from '$app/navigation';
 	import type { PageData } from './$types';
 
@@ -9,7 +10,7 @@
 	let savedApplications = $state<SavedApplication[]>(data.savedApplications);
 	let showAddForm = $state(false);
 	let showDeleteConfirm = $state(false);
-	let deleteTarget = $state<{ name: string; type: 'selected' | 'saved' } | null>(null);
+	let deleteTarget = $state<string | null>(null);
 	let newSchoolName = $state('');
 	let newSchoolDeadline = $state('');
 	let newSchoolUrl = $state('');
@@ -26,50 +27,34 @@
 		}
 	}
 
-	function updateNewSchoolName(value: string) {
-		newSchoolName = value;
-	}
 
-	function updateNewSchoolDeadline(value: string) {
-		newSchoolDeadline = value;
-	}
-
-	function updateNewSchoolUrl(value: string) {
-		newSchoolUrl = value;
-	}
-
-	function addSchool() {
+	async function addSchool() {
 		if (!newSchoolName.trim()) return;
 		
-		// Check if school already exists
-		if (isSchoolSaved(newSchoolName.trim())) {
-			alert('School already added!');
-			return;
-		}
+		// Create a form element and submit it
+		const form = document.createElement('form');
+		form.method = 'POST';
+		form.action = '?/addSchool';
 		
-		// Create new application entry
-		const newApplication: SavedApplication = {
-			id: crypto.randomUUID(),
-			school_name: newSchoolName.trim(),
-			program_id: newSchoolName.trim().toLowerCase().replace(/[^a-z0-9]/g, '-'),
-			status: 'not_started',
-			created_at: new Date().toISOString(),
-			deadline: newSchoolDeadline || new Date().toISOString(),
-			tasks: [] // No tasks initially
-		};
+		// Add school name input
+		const schoolNameInput = document.createElement('input');
+		schoolNameInput.type = 'hidden';
+		schoolNameInput.name = 'schoolName';
+		schoolNameInput.value = newSchoolName.trim();
+		form.appendChild(schoolNameInput);
 		
-		// Add to the list
-		savedApplications = [...savedApplications, newApplication];
+		// Add deadline input
+		const deadlineInput = document.createElement('input');
+		deadlineInput.type = 'hidden';
+		deadlineInput.name = 'deadline';
+		deadlineInput.value = newSchoolDeadline || new Date().toISOString();
+		form.appendChild(deadlineInput);
 		
-		// TODO: Also save to database
-		
-		// Close form and clear inputs
-		toggleAddForm();
+		// Add to page and submit
+		document.body.appendChild(form);
+		form.submit();
 	}
 
-	function isSchoolSaved(schoolName: string): boolean {
-		return savedApplications.some(app => app.school_name === schoolName);
-	}
 
 	function getSavedApplication(schoolName: string): SavedApplication | undefined {
 		return savedApplications.find(app => app.school_name === schoolName);
@@ -115,21 +100,16 @@
 		return { totalTime, remainingTasks, hasIncompleteTasks, completedTasks, totalTasks, percentage };
 	}
 
-	function makePlan(schoolName: string) {
-		// TODO: Create application in database first, then navigate to plan
-		const programId = schoolName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-		goto(`/plan/${programId}?school=${encodeURIComponent(schoolName)}`);
-	}
 
 	function editPlan(schoolName: string) {
 		const savedApp = getSavedApplication(schoolName);
 		if (savedApp) {
-			goto(`/plan/${savedApp.program_id}?school=${encodeURIComponent(schoolName)}`);
+			goto(`/plan/${savedApp.id}?school=${encodeURIComponent(schoolName)}`);
 		}
 	}
 
 	function confirmDelete(schoolName: string) {
-		deleteTarget = { name: schoolName, type: 'saved' };
+		deleteTarget = schoolName;
 		showDeleteConfirm = true;
 	}
 
@@ -141,10 +121,8 @@
 	function confirmDeleteAction() {
 		if (!deleteTarget) return;
 
-		const { name: schoolName } = deleteTarget;
-
 		// Remove from saved applications
-		savedApplications = savedApplications.filter(app => app.school_name !== schoolName);
+		savedApplications = savedApplications.filter(app => app.school_name !== deleteTarget);
 		// TODO: Also delete from database
 
 		showDeleteConfirm = false;
@@ -163,12 +141,8 @@
 	{newSchoolUrl}
 	{addSchool}
 	{toggleAddForm}
-	{updateNewSchoolName}
-	{updateNewSchoolDeadline}
-	{updateNewSchoolUrl}
 	{getOverallTimeSummary}
 	{getApplicationProgress}
-	{makePlan}
 	{editPlan}
 	{confirmDelete}
 	{cancelDelete}

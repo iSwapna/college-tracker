@@ -41,31 +41,6 @@ async function main() {
 
 	console.log('Created task types:', taskTypes);
 
-	// Create sample programs
-	const programs = await Promise.all([
-		prisma.program.upsert({
-			where: { id: 'sample-program-1' },
-			update: {},
-			create: {
-				id: 'sample-program-1',
-				programName: 'Computer Science MS',
-				deadline: new Date('2025-01-15'),
-				website: 'https://example.edu/cs-ms'
-			}
-		}),
-		prisma.program.upsert({
-			where: { id: 'sample-program-2' },
-			update: {},
-			create: {
-				id: 'sample-program-2',
-				programName: 'MBA',
-				deadline: new Date('2025-02-01'),
-				website: 'https://example.edu/mba'
-			}
-		})
-	]);
-
-	console.log('Created programs:', programs);
 
 	// Create a sample user
 	const user = await prisma.user.upsert({
@@ -86,7 +61,6 @@ async function main() {
 		create: {
 			id: 'sample-app-1',
 			userId: user.id,
-			programId: programs[0].id,
 			schoolName: 'Stanford University',
 			deadline: new Date('2025-01-15')
 		}
@@ -98,7 +72,6 @@ async function main() {
 		create: {
 			id: 'sample-app-2',
 			userId: user.id,
-			programId: programs[1].id,
 			schoolName: 'MIT Sloan',
 			deadline: new Date('2025-02-01')
 		}
