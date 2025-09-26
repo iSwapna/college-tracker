@@ -104,6 +104,7 @@ export async function createApplication(data: {
 	userId: string;
 	schoolName: string;
 	deadline: Date;
+	url?: string;
 	tasks?: Array<{
 		title: string;
 		description?: string;
@@ -117,6 +118,7 @@ export async function createApplication(data: {
 			userId: data.userId,
 			schoolName: data.schoolName,
 			deadline: data.deadline,
+			url: data.url,
 			tasks: data.tasks ? {
 				create: data.tasks
 			} : undefined
@@ -124,5 +126,11 @@ export async function createApplication(data: {
 		include: {
 			tasks: true
 		}
+	});
+}
+
+export async function deleteApplication(applicationId: string) {
+	return await prisma.application.delete({
+		where: { id: applicationId }
 	});
 }

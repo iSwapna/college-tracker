@@ -1,4 +1,4 @@
-import { getUserApplicationsWithProgress, createApplication } from '$lib/prisma';
+import { getUserApplicationsWithProgress, createApplication, deleteApplication } from '$lib/prisma';
 import { fail } from '@sveltejs/kit';
 
 export const load = async () => {
@@ -30,27 +30,30 @@ export const load = async () => {
 
 		return {
 			allSchools,
-			savedApplications,
-			initialSelectedSchools: [] // Empty since we're loading from localStorage on client
+			savedApplications
 		};
 
 	} catch (error) {
 		console.error('Error loading school data:', error);
 		return {
 			allSchools: [],
-			savedApplications: [],
-			initialSelectedSchools: []
+			savedApplications: []
 		};
 	}
 };
 
 export const actions = {
 	addSchool: async ({ request }) => {
+		console.log('ADD SCHOOL ACTION TRIGGERED');
 		const formData = await request.formData();
 		const schoolName = formData.get('schoolName') as string;
 		const deadline = formData.get('deadline') as string;
+		const url = formData.get('url') as string;
+		
+		console.log('Form data:', { schoolName, deadline, url });
 		
 		if (!schoolName?.trim()) {
+			console.log('School name validation failed');
 			return fail(400, { error: 'School name is required' });
 		}
 
@@ -68,16 +71,42 @@ export const actions = {
 				return fail(400, { error: 'School already exists in your applications' });
 			}
 			
+			console.log('Creating application with:', {
+				userId: demoUserId,
+				schoolName: schoolName.trim(),
+				deadline: deadline ? new Date(deadline) : new Date(),
+				url: url?.trim() || undefined
+			});
+			
 			const application = await createApplication({
 				userId: demoUserId,
 				schoolName: schoolName.trim(),
-				deadline: deadline ? new Date(deadline) : new Date()
+				deadline: deadline ? new Date(deadline) : new Date(),
+				url: url?.trim() || undefined
 			});
 
+			console.log('🎉 Application created successfully:', application.id);
 			return { success: true, application };
 		} catch (error) {
 			console.error('Error creating application:', error);
 			return fail(500, { error: 'Failed to create application' });
+		}
+	},
+
+	deleteSchool: async ({ request }) => {
+		const formData = await request.formData();
+		const applicationId = formData.get('applicationId') as string;
+		
+		if (!applicationId) {
+			return fail(400, { error: 'Application ID is required' });
+		}
+
+		try {
+			await deleteApplication(applicationId);
+			return { success: true };
+		} catch (error) {
+			console.error('Error deleting application:', error);
+			return fail(500, { error: 'Failed to delete application' });
 		}
 	}
 };

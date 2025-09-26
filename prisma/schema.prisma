@@ -36,6 +36,7 @@ model Application {
   userId     String
   schoolName String
   deadline   DateTime
+  url        String?
   status     String   @default("not_started") // not_started, in_progress, completed
   tasks      Task[]
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)

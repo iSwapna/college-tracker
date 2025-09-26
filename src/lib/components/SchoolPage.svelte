@@ -2,22 +2,71 @@
 	import Header from '$lib/Header.svelte';
 	import type { SavedApplication } from '$lib/types';
 
+	let { savedApplications, editPlan }: { 
+		savedApplications: SavedApplication[]; 
+		editPlan: (schoolName: string) => void; 
+	} = $props();
 
-	export let savedApplications: SavedApplication[];
-	export let showAddForm: boolean;
-	export let showDeleteConfirm: boolean;
-	export let deleteTarget: string | null;
-	export let newSchoolName: string;
-	export let newSchoolDeadline: string;
-	export let newSchoolUrl: string;
-	export let addSchool: () => void;
-	export let toggleAddForm: () => void;
-	export let getOverallTimeSummary: () => { totalTime: number; remainingTasks: number; hasIncompleteTasks: boolean; completedTasks: number; totalTasks: number; percentage: number };
-	export let getApplicationProgress: (app: SavedApplication) => { completed: number; total: number; percentage: number };
-	export let editPlan: (schoolName: string) => void;
-	export let confirmDelete: (schoolName: string) => void;
-	export let cancelDelete: () => void;
-	export let confirmDeleteAction: () => void;
+	// Component owns all form state
+	let showAddForm = $state(false);
+	let showDeleteConfirm = $state(false);
+	let deleteTarget = $state<{id: string, school_name: string} | null>(null);
+
+	// Simple form toggle
+	function toggleAddForm() {
+		showAddForm = !showAddForm;
+	}
+
+	function confirmDelete(app: SavedApplication) {
+		deleteTarget = { id: app.id, school_name: app.school_name };
+		showDeleteConfirm = true;
+	}
+
+	function cancelDelete() {
+		showDeleteConfirm = false;
+		deleteTarget = null;
+	}
+
+	// Component calculates its own data
+	function getApplicationProgress(app: SavedApplication): { completed: number; total: number; percentage: number } {
+		if (!app.tasks || app.tasks.length === 0) {
+			return { completed: 0, total: 0, percentage: 0 };
+		}
+		
+		const completed = app.tasks.filter(task => task.status).length;
+		const total = app.tasks.length;
+		const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+		
+		return { completed, total, percentage };
+	}
+
+	function getOverallTimeSummary(): { totalTime: number; remainingTasks: number; hasIncompleteTasks: boolean; completedTasks: number; totalTasks: number; percentage: number } {
+		let totalTime = 0;
+		let remainingTasks = 0;
+		let completedTasks = 0;
+		let totalTasks = 0;
+		let hasIncompleteTasks = false;
+
+		savedApplications.forEach(app => {
+			if (app.tasks && app.tasks.length > 0) {
+				app.tasks.forEach(task => {
+					totalTasks++;
+					if (!task.status) {
+						remainingTasks++;
+						hasIncompleteTasks = true;
+						if (task.time_estimate && task.time_estimate > 0) {
+							totalTime += task.time_estimate;
+						}
+					} else {
+						completedTasks++;
+					}
+				});
+			}
+		});
+
+		const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+		return { totalTime, remainingTasks, hasIncompleteTasks, completedTasks, totalTasks, percentage };
+	}
 </script>
 
 <div class="min-h-screen bg-white relative">
@@ -39,51 +88,55 @@
 			{#if showAddForm}
 				<div class="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
 					<h3 class="text-lg font-semibold mb-4">Add New School</h3>
-					<div class="space-y-4">
-						<div>
-							<label for="school-name" class="block text-sm font-medium text-gray-700 mb-1">School Name</label>
-							<input
-								id="school-name"
-								type="text"
-								bind:value={newSchoolName}
-								class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-400 focus:border-transparent"
-								placeholder="Enter school name"
-							/>
+					<form method="POST" action="?/addSchool">
+						<div class="space-y-4">
+							<div>
+								<label for="school-name" class="block text-sm font-medium text-gray-700 mb-1">School Name</label>
+								<input
+									id="school-name"
+									name="schoolName"
+									type="text"
+									class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+									placeholder="Enter school name"
+									required
+								/>
+							</div>
+							<div>
+								<label for="school-deadline" class="block text-sm font-medium text-gray-700 mb-1">Application Deadline</label>
+								<input
+									id="school-deadline"
+									name="deadline"
+									type="date"
+									class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+								/>
+							</div>
+							<div>
+								<label for="school-url" class="block text-sm font-medium text-gray-700 mb-1">Application URL (optional)</label>
+								<input
+									id="school-url"
+									name="url"
+									type="url"
+									class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+									placeholder="https://school.edu/apply"
+								/>
+							</div>
+							<div class="flex gap-3">
+								<button
+									type="submit"
+									class="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
+								>
+									Add School
+								</button>
+								<button
+									type="button"
+									onclick={toggleAddForm}
+									class="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+								>
+									Cancel
+								</button>
+							</div>
 						</div>
-						<div>
-							<label for="school-deadline" class="block text-sm font-medium text-gray-700 mb-1">Application Deadline</label>
-							<input
-								id="school-deadline"
-								type="date"
-								bind:value={newSchoolDeadline}
-								class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-400 focus:border-transparent"
-							/>
-						</div>
-						<div>
-							<label for="school-url" class="block text-sm font-medium text-gray-700 mb-1">Application URL (optional)</label>
-							<input
-								id="school-url"
-								type="url"
-								bind:value={newSchoolUrl}
-								class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-400 focus:border-transparent"
-								placeholder="https://school.edu/apply"
-							/>
-						</div>
-						<div class="flex gap-3">
-							<button
-								onclick={addSchool}
-								class="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
-							>
-								Add School
-							</button>
-							<button
-								onclick={toggleAddForm}
-								class="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
-							>
-								Cancel
-							</button>
-						</div>
-					</div>
+					</form>
 				</div>
 			{/if}
 
@@ -147,7 +200,7 @@
 									<div class="flex items-center justify-between">
 										<span>{app.school_name}</span>
 										<button
-											onclick={() => confirmDelete(app.school_name)}
+											onclick={() => confirmDelete(app)}
 											class="text-gray-500 hover:text-red-600 text-sm ml-2"
 											aria-label="Delete {app.school_name}"
 										>
@@ -207,7 +260,7 @@
 			<div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl border-2 border-gray-300">
 				<h3 class="text-lg font-semibold mb-4">Confirm Delete</h3>
 				<p class="text-gray-600 mb-6">
-					Are you sure you want to delete <strong>{deleteTarget}</strong>? 
+					Are you sure you want to delete <strong>{deleteTarget.school_name}</strong>? 
 					You will lose any saved progress.
 				</p>
 				<div class="flex gap-3 justify-end">
@@ -217,12 +270,15 @@
 					>
 						Cancel
 					</button>
-					<button
-						onclick={confirmDeleteAction}
-						class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-					>
-						Delete
-					</button>
+					<form method="POST" action="?/deleteSchool" class="inline">
+						<input type="hidden" name="applicationId" value={deleteTarget.id} />
+						<button
+							type="submit"
+							class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+						>
+							Delete
+						</button>
+					</form>
 				</div>
 			</div>
 		</div>
