@@ -7,7 +7,9 @@ export interface SavedApplication {
 	deadline: string;
 	tasks?: {
 		title: string;
+		description?: string;
 		status: boolean;
 		time_estimate?: number;
+		order?: number;
 	}[];
 }

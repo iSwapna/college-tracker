@@ -11,7 +11,7 @@ export const load = async () => {
 		const allSchools: Array<{name: string, program_id: string}> = [];
 
 		// Get user's saved applications with task data
-		const applications = await getUserApplicationsWithProgress(demoUserId);
+		const applications: any[] = await getUserApplicationsWithProgress(demoUserId);
 		
 		// Transform applications to match SavedApplication interface
 		const savedApplications = applications.map(app => ({
@@ -19,12 +19,14 @@ export const load = async () => {
 			school_name: app.schoolName,
 			program_id: '',
 			status: app.status,
-			created_at: app.createdAt.toISOString(),
+			created_at: new Date().toISOString(), // Since we removed createdAt, use current date
 			deadline: app.deadline.toISOString(),
-			tasks: app.tasks.map(task => ({
+			tasks: (app.tasks || []).map((task: any) => ({
 				title: task.title,
+				description: task.description || undefined,
 				status: task.status === 'completed',
-				time_estimate: task.timeEstimate || 0
+				time_estimate: task.timeEstimate || 0,
+				order: task.order || undefined
 			}))
 		}));
 
@@ -55,6 +57,17 @@ export const actions = {
 		if (!schoolName?.trim()) {
 			console.log('School name validation failed');
 			return fail(400, { error: 'School name is required' });
+		}
+
+		// Validate deadline is not in the past
+		if (deadline) {
+			const deadlineDate = new Date(deadline);
+			const today = new Date();
+			today.setHours(0, 0, 0, 0); // Set to start of day for comparison
+			
+			if (deadlineDate < today) {
+				return fail(400, { error: 'Application deadline cannot be in the past' });
+			}
 		}
 
 		try {

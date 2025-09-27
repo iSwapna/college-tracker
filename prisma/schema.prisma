@@ -15,8 +15,6 @@ model User {
   email        String        @unique
   name         String?
   applications Application[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
 
   @@map("users")
 }
@@ -40,8 +38,6 @@ model Application {
   status     String   @default("not_started") // not_started, in_progress, completed
   tasks      Task[]
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
 
   @@map("applications")
 }
@@ -54,13 +50,12 @@ model Task {
   description   String?
   status        String      @default("pending") // pending, in_progress, completed, overdue
   dueDate       DateTime?
-  timeEstimate  Int? // in hours
+  timeEstimate  Float? // in hours
   completedAt   DateTime?
+  order         Int? // for ordering within an application
   globalOrder   Int? // for flexible ordering across applications
   application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   taskType      TaskType    @relation(fields: [taskTypeId], references: [id])
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
 
   @@map("tasks")
 }

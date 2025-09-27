@@ -107,7 +107,9 @@
 									id="school-deadline"
 									name="deadline"
 									type="date"
+									min={new Date().toISOString().split('T')[0]}
 									class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+									required
 								/>
 							</div>
 							<div>

@@ -23,6 +23,7 @@
 		task_type: string;
 		task_type_id: string;
 		time_estimate: number | null;
+		order: number | null;
 		priority: string;
 		status?: boolean;
 	}
@@ -45,8 +46,16 @@
 	let loading = false;
 	let showAddTaskForm = $state(false);
 	let newTaskTitle = $state('');
+	let newTaskDescription = $state('');
 	let newTaskTime = $state('');
 	let newTaskTypeId = $state('');
+	let newTaskOrder = $state('');
+	let sortBy = $state('order'); // 'order', 'title', 'time'
+	let sortDirection = $state('asc'); // 'asc' or 'desc'
+	let editingTask = $state<string | null>(null); // task ID being edited
+	let editingTasks = $state<{[taskId: string]: any}>({});
+	let hasUnsavedChanges = $state(false);
+	let saveError = $state<string | null>(null);
 
 	// Initialize program details from server data
 	if (application) {
@@ -65,6 +74,7 @@
 				task_type: task.taskType?.type || 'notification',
 				task_type_id: task.taskTypeId,
 				time_estimate: task.timeEstimate,
+				order: task.order,
 				priority: 'medium',
 				status: task.status === 'completed'
 			})),
@@ -103,13 +113,20 @@
 			const defaultTaskType = taskTypes[0];
 			newTaskTime = defaultTaskType.defaultTime ? defaultTaskType.defaultTime.toString() : '';
 		}
+		// Set default order to next number in sequence
+		if (programDetails) {
+			const maxOrder = Math.max(0, ...programDetails.tasks.map(t => t.order || 0));
+			newTaskOrder = (maxOrder + 1).toString();
+		}
 	}
 
 	function cancelAddTask() {
 		showAddTaskForm = false;
 		newTaskTitle = '';
+		newTaskDescription = '';
 		newTaskTime = '';
 		newTaskTypeId = '';
+		newTaskOrder = '';
 	}
 
 	// Update time when task type changes
@@ -142,6 +159,7 @@
 						task_type: result.data.task.taskType?.type || 'notification',
 						task_type_id: result.data.task.taskTypeId,
 						time_estimate: result.data.task.timeEstimate,
+						order: result.data.task.order,
 						priority: 'medium',
 						status: result.data.task.status === 'completed'
 					};
@@ -154,8 +172,10 @@
 				// Close form and clear inputs
 				showAddTaskForm = false;
 				newTaskTitle = '';
+				newTaskDescription = '';
 				newTaskTime = '';
 				newTaskTypeId = '';
+				newTaskOrder = '';
 			} else if (result.type === 'failure') {
 				// Validation error - keep form open with user's input preserved
 				console.log('❌ Validation failed:', result.data);
@@ -165,6 +185,106 @@
 			// Update the page data
 			await update();
 		};
+	}
+
+	// Sorting function
+	function sortTasks(tasks: TaskItem[]) {
+		const sorted = [...tasks];
+		const direction = sortDirection === 'asc' ? 1 : -1;
+		
+		if (sortBy === 'order') {
+			return sorted.sort((a, b) => direction * ((a.order || 0) - (b.order || 0)));
+		} else if (sortBy === 'title') {
+			return sorted.sort((a, b) => direction * a.title.localeCompare(b.title));
+		} else if (sortBy === 'time') {
+			return sorted.sort((a, b) => direction * ((a.time_estimate || 0) - (b.time_estimate || 0)));
+		}
+		return tasks;
+	}
+
+	// Handle sort column click
+	function handleSort(column: string) {
+		if (sortBy === column) {
+			// Toggle direction if same column
+			sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+		} else {
+			// New column, start with ascending
+			sortBy = column;
+			sortDirection = 'asc';
+		}
+	}
+
+	// Task editing functions
+	function startEditingTask(taskId: string, task: TaskItem) {
+		editingTask = taskId;
+		editingTasks[taskId] = {
+			title: task.title,
+			description: task.description,
+			order: task.order,
+			time_estimate: task.time_estimate
+		};
+		hasUnsavedChanges = true;
+	}
+
+	function updateEditingField(taskId: string, field: string, value: any) {
+		console.log('📝 Field update:', { taskId, field, value });
+		
+		if (!editingTasks[taskId]) {
+			const task = programDetails?.tasks.find(t => t.id === taskId);
+			if (!task) {
+				console.log('❌ Task not found:', taskId);
+				return;
+			}
+			editingTasks[taskId] = {
+				title: task.title,
+				description: task.description,
+				order: task.order,
+				time_estimate: task.time_estimate
+			};
+			console.log('🆕 Created new editing entry for task:', taskId);
+		}
+		editingTasks[taskId][field] = value;
+		hasUnsavedChanges = true;
+		console.log('✅ Updated field. hasUnsavedChanges:', hasUnsavedChanges);
+		console.log('📊 Current editingTasks:', editingTasks);
+	}
+
+	function saveAllChanges() {
+		console.log('🔄 Save button clicked');
+		console.log('📊 hasUnsavedChanges:', hasUnsavedChanges);
+		console.log('📝 editingTasks:', editingTasks);
+		console.log('🔢 editingTasks keys:', Object.keys(editingTasks));
+		
+		if (!hasUnsavedChanges || Object.keys(editingTasks).length === 0) {
+			console.log('❌ No changes to save');
+			return;
+		}
+
+		console.log('✅ Proceeding with save...');
+		saveError = null;
+		
+		// Create and submit a form to the server
+		const form = document.createElement('form');
+		form.method = 'POST';
+		form.action = '?/updateTasks';
+		form.style.display = 'none';
+
+		const tasksInput = document.createElement('input');
+		tasksInput.name = 'tasks';
+		tasksInput.value = JSON.stringify(editingTasks);
+		form.appendChild(tasksInput);
+
+		console.log('📤 Submitting form with data:', JSON.stringify(editingTasks));
+		document.body.appendChild(form);
+		form.submit();
+		document.body.removeChild(form);
+	}
+
+	function cancelEditing() {
+		editingTask = null;
+		editingTasks = {};
+		hasUnsavedChanges = false;
+		saveError = null;
 	}
 
 	// Navigation functions
@@ -197,11 +317,11 @@
 				</button>
 			</div>
 
-			<!-- Tasks Table -->
+			<!-- Tasks Section -->
 			<div class="mb-6">
 				<!-- School Details Header -->
 				<div class="bg-gray-100 p-6 rounded-t-lg">
-					<h2 class="text-2xl font-semibold mb-4">Checklist - {programDetails.program.name}</h2>
+					<h2 class="text-2xl font-semibold mb-4">Application Tasks - {programDetails.program.name}</h2>
 					{#if programDetails.program.highlights && programDetails.program.highlights.trim()}
 						<div class="mb-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded">
 							<p class="text-sm text-gray-700"><strong>Highlights:</strong> {programDetails.program.highlights}</p>
@@ -241,9 +361,29 @@
 							<!-- Remaining Time and Tasks -->
 							<div class="grid grid-cols-2 gap-4">
 								<div>
-									<h5 class="text-sm font-semibold mb-1 text-gray-800">Remaining Time:</h5>
-									<div class="text-xl font-bold text-red-600">
-										{programDetails.tasks.filter(t => !t.status).reduce((sum, t) => sum + (t.time_estimate || 0), 0)}h
+									<div class="flex justify-between items-end">
+										<div>
+											<h5 class="text-sm font-semibold mb-1 text-gray-800">Remaining Time:</h5>
+											<div class="text-xl font-bold text-red-600">
+												{programDetails.tasks.filter(t => !t.status).reduce((sum, t) => sum + (t.time_estimate || 0), 0)}h
+											</div>
+										</div>
+										{#if hasUnsavedChanges}
+											<div class="flex gap-1">
+												<button 
+													onclick={saveAllChanges}
+													class="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
+												>
+													Save
+												</button>
+												<button 
+													onclick={cancelEditing}
+													class="bg-gray-400 text-white px-2 py-1 rounded text-xs hover:bg-gray-500"
+												>
+													Cancel
+												</button>
+											</div>
+										{/if}
 									</div>
 								</div>
 								
@@ -257,16 +397,37 @@
 						</div>
 					</div>
 				</div>
+				
+				<!-- Error Display -->
+				{#if saveError}
+					<div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+						<p class="text-sm text-red-600">{saveError}</p>
+					</div>
+				{/if}
+				
 				<table class="w-full border-collapse rounded-b-lg overflow-hidden">
 					<thead>
 						<tr class="bg-gray-100">
-							<th class="pl-4 pr-1 pt-1 pb-2 text-left"></th>
-							<th class="pl-1 pr-4 pt-1 pb-2 text-left"></th>
-							<th class="px-4 pt-2 pb-1 text-right text-lg align-top" colspan="2"></th>
+							<th class="pl-4 pr-1 pt-2 pb-2 text-left text-sm font-medium">✓</th>
+							<th class="pl-1 pr-4 pt-2 pb-2 text-left text-sm font-medium">
+								<button onclick={() => handleSort('order')} class="hover:text-blue-600 {sortBy === 'order' ? 'text-blue-600 font-bold' : ''}">
+									Order {sortBy === 'order' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+								</button>
+							</th>
+							<th class="px-4 pt-2 pb-2 text-left text-sm font-medium">
+								<button onclick={() => handleSort('title')} class="hover:text-blue-600 {sortBy === 'title' ? 'text-blue-600 font-bold' : ''}">
+									Task {sortBy === 'title' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+								</button>
+							</th>
+							<th class="px-4 pt-2 pb-2 text-right text-sm font-medium">
+								<button onclick={() => handleSort('time')} class="hover:text-blue-600 {sortBy === 'time' ? 'text-blue-600 font-bold' : ''}">
+									Time {sortBy === 'time' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+								</button>
+							</th>
 						</tr>
 					</thead>
 					<tbody>
-						{#each programDetails.tasks as task, index}
+						{#each sortTasks(programDetails.tasks) as task, index}
 							<tr 
 								class="hover:bg-gray-50 transition-colors border-b border-gray-100 {task.status ? 'bg-green-50' : ''}"
 								class:group={true}
@@ -284,12 +445,40 @@
 									</form>
 								</td>
 								<td class="pl-1 pr-4 py-2">
-									<div class="text-lg">
-										{index + 1}
-									</div>
+									<input
+										type="number"
+										value={editingTasks[task.id || '']?.order ?? task.order ?? index + 1}
+										min="1"
+										class="w-12 text-center text-sm border border-gray-300 rounded hover:border-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+										oninput={(e) => {
+											const target = e.target as HTMLInputElement;
+											updateEditingField(task.id || '', 'order', parseInt(target.value) || null);
+										}}
+										onfocus={() => startEditingTask(task.id || '', task)}
+									/>
 								</td>
-								<td class="px-4 py-2 font-medium relative text-lg">
-									{task.title}
+								<td class="px-4 py-2 font-medium relative">
+									<input
+										type="text"
+										value={editingTasks[task.id || '']?.title ?? task.title}
+										class="w-full text-lg font-medium border-0 border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-0 bg-transparent px-0 py-1"
+										oninput={(e) => {
+											const target = e.target as HTMLInputElement;
+											updateEditingField(task.id || '', 'title', target.value);
+										}}
+										onfocus={() => startEditingTask(task.id || '', task)}
+									/>
+									<input
+										type="text"
+										value={editingTasks[task.id || '']?.description ?? task.description ?? ''}
+										placeholder="Add description..."
+										class="w-full text-sm text-gray-600 mt-1 border-0 border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-0 bg-transparent px-0 py-1"
+										oninput={(e) => {
+											const target = e.target as HTMLInputElement;
+											updateEditingField(task.id || '', 'description', target.value);
+										}}
+										onfocus={() => startEditingTask(task.id || '', task)}
+									/>
 									<form method="POST" action="?/deleteTask" class="absolute right-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity inline">
 										<input type="hidden" name="taskId" value={task.id} />
 										<button 
@@ -301,18 +490,61 @@
 									</form>
 								</td>
 								<td class="px-4 py-2">
-									<span class="text-sm text-gray-600">
-										{task.time_estimate || 0}h
-									</span>
+									<div class="flex items-center">
+										<input
+											type="number"
+											value={editingTasks[task.id || '']?.time_estimate ?? task.time_estimate ?? 0}
+											min="0"
+											step="0.5"
+											class="w-16 text-sm text-center border border-gray-300 rounded hover:border-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+											oninput={(e) => {
+												const target = e.target as HTMLInputElement;
+												updateEditingField(task.id || '', 'time_estimate', parseFloat(target.value) || 0);
+											}}
+											onfocus={() => startEditingTask(task.id || '', task)}
+										/>
+										<span class="text-sm text-gray-600 ml-1">h</span>
+									</div>
 								</td>
 							</tr>
 						{/each}
 					</tbody>
 				</table>
 				
-				<!-- Add Task Button and Form -->
+				<!-- Template Option and Add Task Button -->
 				<div class="mt-1 pr-4">
-					{#if !showAddTaskForm}
+					{#if programDetails && programDetails.tasks.length === 0 && !showAddTaskForm}
+						<!-- Show template option for empty applications -->
+						<div class="border border-gray-300 p-4 rounded-lg bg-blue-50 mb-4">
+							<h4 class="text-lg font-semibold mb-2">Start with a Template</h4>
+							<p class="text-sm text-gray-600 mb-3">
+								Get started quickly with our standard college application template, which includes:
+							</p>
+							<ul class="text-sm text-gray-600 mb-4 ml-4">
+								<li>• Essay Draft</li>
+								<li>• Essay Final</li>
+								<li>• Tests & Transcripts</li>
+								<li>• Recommendations</li>
+								<li>• Rest of Form</li>
+							</ul>
+							<div class="flex gap-2">
+								<form method="POST" action="?/applyTemplate" class="inline">
+									<button 
+										type="submit"
+										class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+									>
+										Use Template
+									</button>
+								</form>
+								<button 
+									onclick={toggleAddTaskForm}
+									class="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+								>
+									Start from Scratch
+								</button>
+							</div>
+						</div>
+					{:else if !showAddTaskForm}
 						<div class="flex justify-end items-center gap-2">
 							<button 
 								onclick={toggleAddTaskForm}
@@ -330,46 +562,73 @@
 								</div>
 							{/if}
 							<form method="POST" action="?/addTask" use:enhance={handleTaskFormSubmit}>
-								<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-									<div>
-										<label for="new-task-title" class="block text-sm font-medium text-gray-700 mb-1">Task</label>
-										<input
-											id="new-task-title"
-											name="title"
-											type="text"
-											bind:value={newTaskTitle}
-											placeholder="Enter task name"
-											class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-											required
-										/>
+								<div class="space-y-4">
+									<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+										<div>
+											<label for="new-task-title" class="block text-sm font-medium text-gray-700 mb-1">Task Title</label>
+											<input
+												id="new-task-title"
+												name="title"
+												type="text"
+												bind:value={newTaskTitle}
+												placeholder="Enter task name"
+												class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+												required
+											/>
+										</div>
+										<div>
+											<label for="new-task-order" class="block text-sm font-medium text-gray-700 mb-1">Order</label>
+											<input
+												id="new-task-order"
+												name="order"
+												type="number"
+												bind:value={newTaskOrder}
+												placeholder="1"
+												min="1"
+												class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+											/>
+										</div>
 									</div>
 									<div>
-										<label for="new-task-time" class="block text-sm font-medium text-gray-700 mb-1">Time (h)</label>
-										<input
-											id="new-task-time"
-											name="timeEstimate"
-											type="number"
-											bind:value={newTaskTime}
-											placeholder="0"
-											min="0"
-											step="0.5"
+										<label for="new-task-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+										<textarea
+											id="new-task-description"
+											name="description"
+											bind:value={newTaskDescription}
+											placeholder="Enter task description (optional)"
 											class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-										/>
+											rows="2"
+										></textarea>
 									</div>
-									<div>
-										<label for="task-type" class="block text-sm font-medium text-gray-700 mb-1">Task Type</label>
-										<select
-											id="task-type"
-											name="taskTypeId"
-											bind:value={newTaskTypeId}
-											onchange={handleTaskTypeChange}
-											class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-											required
-										>
-											{#each taskTypes as taskType}
-												<option value={taskType.id}>{taskType.type}</option>
-											{/each}
-										</select>
+									<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+										<div>
+											<label for="new-task-time" class="block text-sm font-medium text-gray-700 mb-1">Time (h)</label>
+											<input
+												id="new-task-time"
+												name="timeEstimate"
+												type="number"
+												bind:value={newTaskTime}
+												placeholder="0"
+												min="0"
+												step="0.5"
+												class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+											/>
+										</div>
+										<div>
+											<label for="task-type" class="block text-sm font-medium text-gray-700 mb-1">Task Type</label>
+											<select
+												id="task-type"
+												name="taskTypeId"
+												bind:value={newTaskTypeId}
+												onchange={handleTaskTypeChange}
+												class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+												required
+											>
+												{#each taskTypes as taskType}
+													<option value={taskType.id}>{taskType.type}</option>
+												{/each}
+											</select>
+										</div>
 									</div>
 								</div>
 								<div class="flex justify-end gap-2 mt-4">
