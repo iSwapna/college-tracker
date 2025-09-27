@@ -74,7 +74,9 @@ The `src/lib/prisma.ts` file contains essential helper functions:
 - Database operations should use the helper functions in `prisma.ts`
 - All database models use `cuid()` for IDs
 - Tasks support flexible ordering via `globalOrder` field
-- Time estimates are stored in hours
+- Time estimates are stored as Float (supports decimals like 2.5)
 - Applications store school names directly (no separate Program model)
+- Template system available for quick task setup
+- Inline editing with bulk save functionality
 
 ## Recent Changes
