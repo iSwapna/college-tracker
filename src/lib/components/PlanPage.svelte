@@ -26,6 +26,7 @@
 		order: number | null;
 		priority: string;
 		status?: boolean;
+		url?: string;
 	}
 </script>
 
@@ -221,7 +222,8 @@
 			title: task.title,
 			description: task.description,
 			order: task.order,
-			time_estimate: task.time_estimate
+			time_estimate: task.time_estimate,
+			url: task.url
 		};
 		hasUnsavedChanges = true;
 	}
@@ -239,7 +241,8 @@
 				title: task.title,
 				description: task.description,
 				order: task.order,
-				time_estimate: task.time_estimate
+				time_estimate: task.time_estimate,
+				url: task.url
 			};
 			console.log('🆕 Created new editing entry for task:', taskId);
 		}
@@ -479,6 +482,27 @@
 										}}
 										onfocus={() => startEditingTask(task.id || '', task)}
 									/>
+									<input
+										type="url"
+										value={editingTasks[task.id || '']?.url ?? task.url ?? application?.url ?? ''}
+										placeholder={application?.url ? `Default: ${application.url}` : 'Enter URL'}
+										class="w-full text-xs text-gray-500 mt-1 border-0 border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-0 bg-transparent px-0 py-1"
+										oninput={(e) => {
+											const target = e.target as HTMLInputElement;
+											updateEditingField(task.id || '', 'url', target.value);
+										}}
+										onfocus={() => startEditingTask(task.id || '', task)}
+									/>
+									{#if (editingTasks[task.id || '']?.url ?? task.url)}
+										<div class="mt-1">
+											<a href={editingTasks[task.id || '']?.url ?? task.url} target="_blank" class="text-xs text-blue-600 hover:text-blue-800 inline-flex items-center gap-1">
+												<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+												</svg>
+												Open Application
+											</a>
+										</div>
+									{/if}
 									<form method="POST" action="?/deleteTask" class="absolute right-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity inline">
 										<input type="hidden" name="taskId" value={task.id} />
 										<button 

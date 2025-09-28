@@ -1,13 +1,12 @@
 <script lang="ts">
 	import SchoolPage from '$lib/components/SchoolPage.svelte';
-	import type { SavedApplication } from '$lib/types';
 	import { goto } from '$app/navigation';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
 	// Parent only handles navigation
-	function getSavedApplication(schoolName: string): SavedApplication | undefined {
+	function getSavedApplication(schoolName: string) {
 		return data.savedApplications.find(app => app.school_name === schoolName);
 	}
 

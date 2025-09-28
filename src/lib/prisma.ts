@@ -309,7 +309,10 @@ export async function createApplication(data: {
 			deadline: data.deadline,
 			url: data.url,
 			tasks: data.tasks ? {
-				create: data.tasks
+				create: data.tasks.map(task => ({
+					...task,
+					url: data.url // inherit application URL by default
+				}))
 			} : undefined
 		},
 		include: {

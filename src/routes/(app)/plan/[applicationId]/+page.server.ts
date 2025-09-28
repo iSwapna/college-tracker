@@ -66,6 +66,12 @@ export const actions: Actions = {
 
 		try {
 			console.log('Checking for duplicates...');
+			
+			// Get application to inherit URL
+			const application = await prisma.application.findUnique({
+				where: { id: applicationId }
+			});
+			
 			// Check if task with same title already exists for this application
 			const existingTask = await prisma.task.findFirst({
 				where: {
@@ -113,6 +119,7 @@ export const actions: Actions = {
 					timeEstimate: finalTimeEstimate,
 					globalOrder: nextGlobalOrder,
 					status: 'pending',
+					url: (application as any)?.url, // inherit application URL
 					...(order && order.trim() ? { order: parseInt(order) } : {})
 				} as any
 			});
@@ -308,6 +315,9 @@ export const actions: Actions = {
 				if (data.time_estimate !== undefined && data.time_estimate !== null) {
 					updateData.timeEstimate = parseFloat(data.time_estimate.toString()) || 0;
 				}
+				if (data.url !== undefined) {
+					updateData.url = data.url.trim() || null;
+				}
 
 				// Only update if there are actual changes
 				if (Object.keys(updateData).length > 0) {
@@ -351,6 +361,11 @@ export const actions: Actions = {
 			if (existingTasks.length > 0) {
 				return fail(400, { error: 'Template can only be applied to applications without tasks' });
 			}
+
+			// Get application to inherit URL
+			const application = await prisma.application.findUnique({
+				where: { id: applicationId }
+			});
 
 			// Get task types for the template
 			const taskTypes = await prisma.taskType.findMany();
@@ -417,7 +432,8 @@ export const actions: Actions = {
 						data: {
 							applicationId,
 							...taskData,
-							status: 'pending'
+							status: 'pending',
+							url: (application as any)?.url // inherit application URL
 						} as any
 					})
 				)

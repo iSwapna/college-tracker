@@ -20,6 +20,7 @@ export const load = async () => {
 			program_id: '',
 			status: app.status,
 			deadline: app.deadline.toISOString(),
+			url: app.url,
 			tasks: (app.tasks || []).map((task: any) => ({
 				title: task.title,
 				description: task.description || undefined,

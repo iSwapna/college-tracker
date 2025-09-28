@@ -54,6 +54,7 @@ model Task {
   completedAt   DateTime?
   order         Int? // for ordering within an application
   globalOrder   Int? // for flexible ordering across applications
+  url           String? // task-specific URL, defaults to application URL
   application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   taskType      TaskType    @relation(fields: [taskTypeId], references: [id])
 

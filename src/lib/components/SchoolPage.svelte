@@ -1,9 +1,7 @@
 <script lang="ts">
 	import Header from '$lib/Header.svelte';
-	import type { SavedApplication } from '$lib/types';
-
 	let { savedApplications, editPlan }: { 
-		savedApplications: SavedApplication[]; 
+		savedApplications: any[]; 
 		editPlan: (schoolName: string) => void; 
 	} = $props();
 
@@ -17,7 +15,7 @@
 		showAddForm = !showAddForm;
 	}
 
-	function confirmDelete(app: SavedApplication) {
+	function confirmDelete(app: any) {
 		deleteTarget = { id: app.id, school_name: app.school_name };
 		showDeleteConfirm = true;
 	}
@@ -28,12 +26,12 @@
 	}
 
 	// Component calculates its own data
-	function getApplicationProgress(app: SavedApplication): { completed: number; total: number; percentage: number } {
+	function getApplicationProgress(app: any): { completed: number; total: number; percentage: number } {
 		if (!app.tasks || app.tasks.length === 0) {
 			return { completed: 0, total: 0, percentage: 0 };
 		}
 		
-		const completed = app.tasks.filter(task => task.status).length;
+		const completed = app.tasks.filter((task: any) => task.status).length;
 		const total = app.tasks.length;
 		const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 		
@@ -49,7 +47,7 @@
 
 		savedApplications.forEach(app => {
 			if (app.tasks && app.tasks.length > 0) {
-				app.tasks.forEach(task => {
+				app.tasks.forEach((task: any) => {
 					totalTasks++;
 					if (!task.status) {
 						remainingTasks++;
@@ -191,6 +189,7 @@
 						<tr class="bg-gray-100">
 							<th class="border border-gray-300 px-4 py-2 text-left">School Name</th>
 							<th class="border border-gray-300 px-4 py-2 text-left">Deadline</th>
+							<th class="border border-gray-300 px-4 py-2 text-left">URL</th>
 							<th class="border border-gray-300 px-4 py-2 text-left">Status</th>
 							<th class="border border-gray-300 px-4 py-2 text-left">Action</th>
 						</tr>
@@ -216,6 +215,15 @@
 										<span class="text-sm">{new Date(app.deadline).toLocaleDateString()}</span>
 									{:else}
 										<span class="text-gray-400 text-sm">No deadline</span>
+									{/if}
+								</td>
+								<td class="border border-gray-300 px-4 py-2">
+									{#if app.url}
+										<a href={app.url} target="_blank" class="text-blue-600 hover:text-blue-800 text-sm">
+											{app.url}
+										</a>
+									{:else}
+										<span class="text-gray-400 text-sm">-</span>
 									{/if}
 								</td>
 								<td class="border border-gray-300 px-4 py-2">
