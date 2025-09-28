@@ -87,27 +87,29 @@
 					<h3 class="text-lg font-semibold mb-4">Add New School</h3>
 					<form method="POST" action="?/addSchool">
 						<div class="space-y-4">
-							<div>
-								<label for="school-name" class="block text-sm font-medium text-gray-700 mb-1">School Name</label>
-								<input
-									id="school-name"
-									name="schoolName"
-									type="text"
-									class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-400 focus:border-transparent"
-									placeholder="Enter school name"
-									required
-								/>
-							</div>
-							<div>
-								<label for="school-deadline" class="block text-sm font-medium text-gray-700 mb-1">Application Deadline</label>
-								<input
-									id="school-deadline"
-									name="deadline"
-									type="date"
-									min={new Date().toISOString().split('T')[0]}
-									class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-400 focus:border-transparent"
-									required
-								/>
+							<div class="flex gap-4">
+								<div class="flex-1">
+									<label for="school-name" class="block text-sm font-medium text-gray-700 mb-1">School Name</label>
+									<input
+										id="school-name"
+										name="schoolName"
+										type="text"
+										class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+										placeholder="Enter school name"
+										required
+									/>
+								</div>
+								<div>
+									<label for="school-deadline" class="block text-sm font-medium text-gray-700 mb-1">Application Deadline</label>
+									<input
+										id="school-deadline"
+										name="deadline"
+										type="date"
+										min={new Date().toISOString().split('T')[0]}
+										class="w-40 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-400 focus:border-transparent"
+										required
+									/>
+								</div>
 							</div>
 							<div>
 								<label for="school-url" class="block text-sm font-medium text-gray-700 mb-1">Application URL (optional)</label>
