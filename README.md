@@ -65,12 +65,6 @@ npm run build           # Build for production
 npm run preview         # Preview production build
 ```
 
-**Type Checking:**
-```bash
-npm run check           # Run svelte-check
-npm run check:watch     # Run svelte-check in watch mode
-```
-
 **Database Operations:**
 ```bash
 npm run db:generate     # Generate Prisma client
