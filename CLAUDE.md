@@ -80,3 +80,4 @@ The `src/lib/prisma.ts` file contains essential helper functions:
 - Inline editing with bulk save functionality
 
 ## Recent Changes
+- Before starting, understand current codebase well and how each componet interqacts with others . Make sure the new code follows the same pattern and is modular. Ask any clarifying questions, if any, before proceeding to change code. Keep the changes as much as possible, in testable chuncks

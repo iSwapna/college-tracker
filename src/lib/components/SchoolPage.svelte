@@ -73,7 +73,6 @@
 	<Header />
 	
 	<main class="container mx-auto px-4 py-8 max-w-4xl pt-24">
-		<h1 class="text-3xl font-bold text-center mb-4">Back to School Plan</h1>
 		<p class="text-center text-gray-600 mb-8 text-lg">Choose schools</p>
 
 		<!-- Add School Section -->
@@ -125,14 +124,14 @@
 							<div class="flex gap-3">
 								<button
 									type="submit"
-									class="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
+									class="bg-transparent text-black border border-black px-4 py-2 rounded hover:bg-gray-100"
 								>
 									Add School
 								</button>
 								<button
 									type="button"
 									onclick={toggleAddForm}
-									class="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+									class="bg-transparent text-black border border-black px-4 py-2 rounded hover:bg-gray-100"
 								>
 									Cancel
 								</button>
@@ -184,7 +183,9 @@
 		<!-- Schools Table -->
 		{#if savedApplications.length > 0}
 			<div class="mb-8">
-				<h3 class="text-lg font-semibold mb-3">Schools:</h3>
+				<div class="mb-3">
+					<h3 class="text-lg font-semibold">Schools:</h3>
+				</div>
 				<table class="w-full border-collapse border border-gray-300">
 					<thead>
 						<tr class="bg-gray-100">
@@ -239,7 +240,7 @@
 								<td class="border border-gray-300 px-4 py-2">
 									<button 
 										onclick={() => editPlan(app.school_name)}
-										class="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 text-sm"
+										class="bg-transparent text-black border border-black px-3 py-1 rounded hover:bg-gray-100 text-sm"
 									>
 										Edit
 									</button>

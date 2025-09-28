@@ -3,7 +3,6 @@ export interface SavedApplication {
 	school_name: string;
 	program_id: string;
 	status: string;
-	created_at: string;
 	deadline: string;
 	tasks?: {
 		title: string;

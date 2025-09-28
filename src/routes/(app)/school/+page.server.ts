@@ -19,7 +19,6 @@ export const load = async () => {
 			school_name: app.schoolName,
 			program_id: '',
 			status: app.status,
-			created_at: new Date().toISOString(), // Since we removed createdAt, use current date
 			deadline: app.deadline.toISOString(),
 			tasks: (app.tasks || []).map((task: any) => ({
 				title: task.title,
