@@ -23,6 +23,14 @@
 				>
 					Add Schools
 				</a>
+				<form method="POST" action="/logout">
+					<button 
+						type="submit"
+						class="text-gray-600 hover:text-gray-900 text-sm font-medium"
+					>
+						Logout
+					</button>
+				</form>
 			</nav>
 		</div>
 	</div>
