@@ -3,7 +3,7 @@ import { fail } from '@sveltejs/kit';
 
 export const load = async () => {
 	// Using demo user for now - in real app this would come from session
-	const demoUserId = 'cmfyzo7xh0004zufl08jtcc5i'; // From your seed data
+	const demoUserId = 'cmg5kf74j0006yufqaz3fh50s'; // From your seed data
 
 	try {
 		// For now, return empty schools array since we removed the Program model
@@ -72,7 +72,7 @@ export const actions = {
 
 		try {
 			// Using demo user for now - in real app this would come from session
-			const demoUserId = 'cmfyzo7xh0004zufl08jtcc5i';
+			const demoUserId = 'cmg5kf74j0006yufqaz3fh50s';
 			
 			// Check if school already exists for this user
 			const existingApplications = await getUserApplicationsWithProgress(demoUserId);

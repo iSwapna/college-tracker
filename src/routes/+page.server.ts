@@ -3,7 +3,7 @@ import { fail } from '@sveltejs/kit';
 
 export const load = async () => {
 	// Using demo user for now - in real app this would come from session
-	const demoUserId = 'cmfyzo7xh0004zufl08jtcc5i';
+	const demoUserId = 'cmg5kf74j0006yufqaz3fh50s';
 
 	try {
 		// Check if user has any applications

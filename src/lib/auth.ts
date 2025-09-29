@@ -11,7 +11,7 @@ export async function getUser(event: RequestEvent) {
 	// Handle demo user
 	if (session === 'demo-user-session') {
 		return {
-			id: 'cmfyzo7xh0004zufl08jtcc5i', // Demo user ID from seed
+			id: 'cmg5kf74j0006yufqaz3fh50s', // Demo user ID from seed
 			email: 'demo@example.com',
 			name: 'Demo User'
 		};
