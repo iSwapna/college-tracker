@@ -34,6 +34,13 @@ npm run db:push         # Push schema to database
 npm run db:seed         # Seed database with initial data
 ```
 
+**Testing:**
+```bash
+npm test                # Run all integration tests
+npm run test:watch      # Run tests in watch mode
+npm run test:ui         # Open Vitest UI
+```
+
 ## Architecture
 
 ### Database Schema
@@ -59,9 +66,11 @@ The application centers around 4 main models:
 The `src/lib/prisma.ts` file contains essential helper functions:
 - `getUserApplicationsWithProgress()`: Fetch user applications with tasks
 - `calculateUserTimeNeeded()`: Calculate workload and time estimates
+- `calculateWeeklyPlan()`: Calculate weekly work distribution and progress metrics
 - `getApplicationWithTasks()`: Get single application with full details
 - `updateTaskStatus()`: Update task completion status
 - `createApplication()`: Create new application with tasks
+- `deleteApplication()`: Delete application and cascade to tasks
 
 ### Environment Requirements
 - `PRISMA_DATABASE_URL`: PostgreSQL connection string
@@ -70,7 +79,7 @@ The `src/lib/prisma.ts` file contains essential helper functions:
 ## Development Notes
 
 - Uses SvelteKit 2.x with Svelte 5.x
-- Styled with Tailwind CSS v4 
+- Styled with Tailwind CSS v4
 - Database operations should use the helper functions in `prisma.ts`
 - All database models use `cuid()` for IDs
 - Tasks support flexible ordering via `globalOrder` field
@@ -79,5 +88,46 @@ The `src/lib/prisma.ts` file contains essential helper functions:
 - Template system available for quick task setup
 - Inline editing with bulk save functionality
 
+## Testing
+
+The project includes comprehensive integration tests covering the main application workflow:
+
+### Test Structure
+- **Framework**: Vitest with PostgreSQL database
+- **Location**: `tests/integration/`
+- **Setup**: `tests/setup.ts` handles database initialization and cleanup
+
+### Test Coverage (23 tests)
+
+**Application Workflow Tests** (`application-workflow.test.ts`):
+- Creating applications with tasks
+- Retrieving applications with progress
+- Deleting applications (cascade deletion)
+- Adding new tasks to partially completed applications
+
+**Time Calculations Tests** (`time-calculations.test.ts`):
+- Total time calculation for pending tasks
+- Excluding completed tasks from calculations
+- Handling multiple applications with different deadlines
+- Work time with 10% buffer calculation
+- Remaining task counts
+- Weekly work distribution
+- Essay hours tracking (completed/total/percentage)
+- Essay task count percentage
+- Notification task tracking and completion
+
+**Task Status Management Tests** (`task-status.test.ts`):
+- Marking tasks as completed (with timestamp)
+- Reverting tasks from completed to pending
+- Time calculation updates based on status changes
+- Complex scenarios with multiple status changes
+- Status changes across multiple applications
+
+### Running Tests
+Tests use the existing PostgreSQL database and clean up after themselves. Run sequentially to avoid conflicts:
+```bash
+npm test -- --pool=forks --poolOptions.forks.singleFork=true
+```
+
 ## Recent Changes
-- Before starting, understand current codebase well and how each componet interqacts with others . Make sure the new code follows the same pattern and is modular. Ask any clarifying questions, if any, before proceeding to change code. Keep the changes as much as possible, in testable chuncks
+- Before starting, understand current codebase well and how each component interacts with others. Make sure the new code follows the same pattern and is modular. Ask any clarifying questions, if any, before proceeding to change code. Keep the changes as much as possible, in testable chunks
