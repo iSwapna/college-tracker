@@ -38,8 +38,9 @@ export const handle: Handler = async ({ event, resolve }) => {
 		}
 	}
 
-	// Protect app routes
+	// Protect app routes (including home page)
 	if (
+		event.url.pathname === '/' ||
 		event.url.pathname.startsWith('/school') ||
 		event.url.pathname.startsWith('/plan') ||
 		event.url.pathname.includes('/(app)/')
