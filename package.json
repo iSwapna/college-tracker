@@ -13,15 +13,14 @@
 		"db:generate": "prisma generate",
 		"db:push": "prisma db push",
 		"db:seed": "prisma db seed",
-		"test": "vitest run",
-		"test:watch": "vitest",
+		"test": "vitest run --pool=forks --poolOptions.forks.singleFork=true",
+		"test:watch": "vitest --pool=forks --poolOptions.forks.singleFork=true",
 		"test:ui": "vitest --ui"
 	},
 	"prisma": {
 		"seed": "tsx prisma/seed.ts"
 	},
 	"devDependencies": {
-		"@sveltejs/adapter-auto": "^6.0.0",
 		"@sveltejs/kit": "^2.22.0",
 		"@sveltejs/vite-plugin-svelte": "^6.0.0",
 		"@tailwindcss/forms": "^0.5.10",
@@ -40,9 +39,9 @@
 		"vitest": "^3.2.4"
 	},
 	"dependencies": {
+		"@kinde-oss/kinde-auth-sveltekit": "^2.2.3",
 		"@prisma/client": "6.16.2",
 		"@sveltejs/adapter-vercel": "^5.10.2",
-		"@vercel/postgres": "^0.10.0",
 		"prisma": "^6.16.2"
 	}
 }

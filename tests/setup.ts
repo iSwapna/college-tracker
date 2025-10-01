@@ -56,3 +56,15 @@ async function seedTaskTypes() {
 export function getTestPrisma() {
   return prisma;
 }
+
+// Helper to create test users with required fields
+export async function createTestUser(email: string, name: string = 'Test User', kindeId?: string) {
+  return await prisma.user.create({
+    data: {
+      email,
+      name,
+      kindeId: kindeId || `test-kinde-${Date.now()}-${Math.random()}`,
+      username: email
+    }
+  });
+}

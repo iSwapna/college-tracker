@@ -264,9 +264,12 @@ function getCurrentWeekTasks(weeklyPlan: any[]) {
 	return currentWeek.tasks.map((task: any) => ({ ...task, type: 'work' }));
 }
 
-export async function getApplicationWithTasks(applicationId: string) {
-	return await prisma.application.findUnique({
-		where: { id: applicationId },
+export async function getApplicationWithTasks(applicationId: string, userId: string) {
+	return await prisma.application.findFirst({
+		where: {
+			id: applicationId,
+			userId: userId // Only return if user owns it
+		},
 		include: {
 			tasks: {
 				orderBy: [
@@ -321,9 +324,13 @@ export async function createApplication(data: {
 	});
 }
 
-export async function deleteApplication(applicationId: string) {
-	return await prisma.application.delete({
-		where: { id: applicationId }
+export async function deleteApplication(applicationId: string, userId: string) {
+	// Only delete if user owns it
+	return await prisma.application.deleteMany({
+		where: {
+			id: applicationId,
+			userId: userId
+		}
 	});
 }
 

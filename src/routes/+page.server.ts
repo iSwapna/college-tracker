@@ -1,13 +1,16 @@
 import { calculateWeeklyPlan, getUserApplicationsWithProgress, updateTaskStatus } from '$lib/prisma';
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
+import type { PageServerLoad } from './$types';
 
-export const load = async () => {
-	// Using demo user for now - in real app this would come from session
-	const demoUserId = 'cmg5kf74j0006yufqaz3fh50s';
+export const load: PageServerLoad = async ({ locals }) => {
+	// Redirect to login if not authenticated
+	if (!locals.user) {
+		throw redirect(302, '/login');
+	}
 
 	try {
 		// Check if user has any applications
-		const applications = await getUserApplicationsWithProgress(demoUserId);
+		const applications = await getUserApplicationsWithProgress(locals.user.id);
 		
 		if (applications.length === 0) {
 			return {
@@ -22,10 +25,10 @@ export const load = async () => {
 		}
 
 		// Calculate the weekly plan
-		const planData = await calculateWeeklyPlan(demoUserId);
+		const planData = await calculateWeeklyPlan(locals.user.id);
 
 		// Get all pending tasks in global order
-		const allPendingTasks = await getUserApplicationsWithProgress(demoUserId);
+		const allPendingTasks = await getUserApplicationsWithProgress(locals.user.id);
 		console.log('Raw applications:', allPendingTasks.length);
 		
 		const allTasks = allPendingTasks

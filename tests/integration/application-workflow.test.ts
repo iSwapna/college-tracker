@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { setupTestDatabase, cleanupTestDatabase, resetDatabase, getTestPrisma } from '../setup';
+import { setupTestDatabase, cleanupTestDatabase, resetDatabase, getTestPrisma, createTestUser } from '../setup';
 import {
   getUserApplicationsWithProgress,
   calculateUserTimeNeeded,
@@ -31,15 +31,9 @@ describe('Application Management Workflow', () => {
 
   beforeEach(async () => {
     await resetDatabase();
-    const prisma = getTestPrisma();
 
     // Create a test user
-    const user = await prisma.user.create({
-      data: {
-        email: 'test@example.com',
-        name: 'Test User'
-      }
-    });
+    const user = await createTestUser('test@example.com', 'Test User');
     testUserId = user.id;
   });
 
@@ -121,7 +115,7 @@ describe('Application Management Workflow', () => {
         ]
       });
 
-      await deleteApplication(application.id);
+      await deleteApplication(application.id, testUserId);
 
       const applications = await getUserApplicationsWithProgress(testUserId);
       expect(applications).toHaveLength(0);

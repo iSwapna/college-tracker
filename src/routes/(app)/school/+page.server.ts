@@ -1,9 +1,11 @@
 import { getUserApplicationsWithProgress, createApplication, deleteApplication } from '$lib/prisma';
-import { fail } from '@sveltejs/kit';
+import { fail, error } from '@sveltejs/kit';
+import type { PageServerLoad } from './$types';
 
-export const load = async () => {
-	// Using demo user for now - in real app this would come from session
-	const demoUserId = 'cmg5kf74j0006yufqaz3fh50s'; // From your seed data
+export const load: PageServerLoad = async ({ locals }) => {
+	if (!locals.user) {
+		throw error(401, 'Unauthorized');
+	}
 
 	try {
 		// For now, return empty schools array since we removed the Program model
@@ -11,7 +13,7 @@ export const load = async () => {
 		const allSchools: Array<{name: string, program_id: string}> = [];
 
 		// Get user's saved applications with task data
-		const applications: any[] = await getUserApplicationsWithProgress(demoUserId);
+		const applications: any[] = await getUserApplicationsWithProgress(locals.user.id);
 		
 		// Transform applications to match SavedApplication interface
 		const savedApplications = applications.map(app => ({
@@ -45,15 +47,19 @@ export const load = async () => {
 };
 
 export const actions = {
-	addSchool: async ({ request }) => {
+	addSchool: async ({ request, locals }) => {
+		if (!locals.user) {
+			return fail(401, { error: 'Unauthorized' });
+		}
+
 		console.log('ADD SCHOOL ACTION TRIGGERED');
 		const formData = await request.formData();
 		const schoolName = formData.get('schoolName') as string;
 		const deadline = formData.get('deadline') as string;
 		const url = formData.get('url') as string;
-		
+
 		console.log('Form data:', { schoolName, deadline, url });
-		
+
 		if (!schoolName?.trim()) {
 			console.log('School name validation failed');
 			return fail(400, { error: 'School name is required' });
@@ -64,35 +70,32 @@ export const actions = {
 			const deadlineDate = new Date(deadline);
 			const today = new Date();
 			today.setHours(0, 0, 0, 0); // Set to start of day for comparison
-			
+
 			if (deadlineDate < today) {
 				return fail(400, { error: 'Application deadline cannot be in the past' });
 			}
 		}
 
 		try {
-			// Using demo user for now - in real app this would come from session
-			const demoUserId = 'cmg5kf74j0006yufqaz3fh50s';
-			
 			// Check if school already exists for this user
-			const existingApplications = await getUserApplicationsWithProgress(demoUserId);
-			const duplicate = existingApplications.find(app => 
+			const existingApplications = await getUserApplicationsWithProgress(locals.user.id);
+			const duplicate = existingApplications.find(app =>
 				app.schoolName.toLowerCase() === schoolName.trim().toLowerCase()
 			);
-			
+
 			if (duplicate) {
 				return fail(400, { error: 'School already exists in your applications' });
 			}
-			
+
 			console.log('Creating application with:', {
-				userId: demoUserId,
+				userId: locals.user.id,
 				schoolName: schoolName.trim(),
 				deadline: deadline ? new Date(deadline) : new Date(),
 				url: url?.trim() || undefined
 			});
-			
+
 			const application = await createApplication({
-				userId: demoUserId,
+				userId: locals.user.id,
 				schoolName: schoolName.trim(),
 				deadline: deadline ? new Date(deadline) : new Date(),
 				url: url?.trim() || undefined
@@ -106,16 +109,23 @@ export const actions = {
 		}
 	},
 
-	deleteSchool: async ({ request }) => {
+	deleteSchool: async ({ request, locals }) => {
+		if (!locals.user) {
+			return fail(401, { error: 'Unauthorized' });
+		}
+
 		const formData = await request.formData();
 		const applicationId = formData.get('applicationId') as string;
-		
+
 		if (!applicationId) {
 			return fail(400, { error: 'Application ID is required' });
 		}
 
 		try {
-			await deleteApplication(applicationId);
+			const result = await deleteApplication(applicationId, locals.user.id);
+			if (result.count === 0) {
+				return fail(404, { error: 'Application not found or access denied' });
+			}
 			return { success: true };
 		} catch (error) {
 			console.error('Error deleting application:', error);

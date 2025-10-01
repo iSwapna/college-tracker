@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { setupTestDatabase, cleanupTestDatabase, resetDatabase, getTestPrisma } from '../setup';
+import { setupTestDatabase, cleanupTestDatabase, resetDatabase, getTestPrisma, createTestUser } from '../setup';
 import {
   calculateUserTimeNeeded,
   calculateWeeklyPlan,
@@ -28,14 +28,8 @@ describe('Time Calculations', () => {
 
   beforeEach(async () => {
     await resetDatabase();
-    const prisma = getTestPrisma();
 
-    const user = await prisma.user.create({
-      data: {
-        email: 'test@example.com',
-        name: 'Test User'
-      }
-    });
+    const user = await createTestUser('test@example.com', 'Test User');
     testUserId = user.id;
   });
 

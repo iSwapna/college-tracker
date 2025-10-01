@@ -1,28 +1,59 @@
 import { redirect } from '@sveltejs/kit';
-import type { Handle } from '@sveltejs/kit';
-import { getUser } from '$lib/auth';
+import { sessionHooks, type Handler, kindeAuthClient, type SessionManager } from '@kinde-oss/kinde-auth-sveltekit';
+import { prisma } from '$lib/prisma';
 
-export const handle: Handle = async ({ event, resolve }) => {
-	// Get user from session
-	const user = await getUser(event);
-	
-	// Add user to locals for access in routes
-	event.locals.user = user;
+export const handle: Handler = async ({ event, resolve }) => {
+	sessionHooks({ event });
 
-	// Protect app routes (anything under /(app)/)
-	if (event.url.pathname.startsWith('/school') || 
-		event.url.pathname.startsWith('/plan') ||
-		event.url.pathname.includes('/(app)/')) {
-		
-		if (!user) {
-			throw redirect(302, '/login');
+	const isAuthenticated = await kindeAuthClient.isAuthenticated(
+		event.request as unknown as SessionManager
+	);
+
+	// Sync Kinde user to local database
+	if (isAuthenticated) {
+		const kindeUser = await kindeAuthClient.getUser(event.request as unknown as SessionManager);
+
+		if (kindeUser) {
+			// Check if user exists in our database
+			let user = await prisma.user.findUnique({
+				where: { kindeId: kindeUser.id }
+			});
+
+			// Create user if doesn't exist
+			if (!user) {
+				user = await prisma.user.create({
+					data: {
+						kindeId: kindeUser.id,
+						email: kindeUser.email || '',
+						username: kindeUser.username || kindeUser.email || 'user',
+						name: kindeUser.given_name && kindeUser.family_name
+							? `${kindeUser.given_name} ${kindeUser.family_name}`
+							: kindeUser.given_name || kindeUser.family_name || null
+					}
+				});
+			}
+
+			// Add user to locals
+			event.locals.user = user;
 		}
 	}
 
-	// Redirect to landing page if logged in and visiting login
-	if (user && event.url.pathname === '/login') {
-		throw redirect(302, '/');
+	// Protect app routes
+	if (
+		event.url.pathname.startsWith('/school') ||
+		event.url.pathname.startsWith('/plan') ||
+		event.url.pathname.includes('/(app)/')
+	) {
+		if (!isAuthenticated) {
+			throw redirect(302, '/api/auth/login');
+		}
 	}
 
-	return resolve(event);
+	// Redirect to school if logged in and visiting login
+	if (isAuthenticated && event.url.pathname === '/login') {
+		throw redirect(302, '/school');
+	}
+
+	const response = await resolve(event);
+	return response;
 };

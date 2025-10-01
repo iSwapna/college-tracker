@@ -1,19 +1,23 @@
 import { getApplicationWithTasks, prisma } from '$lib/prisma';
-import { fail } from '@sveltejs/kit';
-import type { Actions } from '@sveltejs/kit';
+import { fail, error } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
 
-export const load = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
+	if (!locals.user) {
+		throw error(401, 'Unauthorized');
+	}
+
 	const { applicationId } = params;
-	
+
 	if (!applicationId) {
-		throw new Error('Application ID is required');
+		throw error(400, 'Application ID is required');
 	}
 
 	try {
-		const application = await getApplicationWithTasks(applicationId);
-		
+		const application = await getApplicationWithTasks(applicationId, locals.user.id);
+
 		if (!application) {
-			throw new Error('Application not found');
+			throw error(404, 'Application not found or access denied');
 		}
 
 		// Debug: Log the loaded tasks to see timeEstimate values

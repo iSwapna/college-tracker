@@ -17,20 +17,18 @@
 			</div>
 			
 			<nav class="flex items-center space-x-4">
-				<a 
-					href="/school" 
+				<a
+					href="/school"
 					class="bg-transparent text-black border border-black px-4 py-2 rounded-md hover:bg-gray-100 transition-colors text-sm font-medium"
 				>
 					Add Schools
 				</a>
-				<form method="POST" action="/logout">
-					<button 
-						type="submit"
-						class="text-gray-600 hover:text-gray-900 text-sm font-medium"
-					>
-						Logout
-					</button>
-				</form>
+				<a
+					href="/api/auth/logout"
+					class="text-gray-600 hover:text-gray-900 text-sm font-medium"
+				>
+					Logout
+				</a>
 			</nav>
 		</div>
 	</div>

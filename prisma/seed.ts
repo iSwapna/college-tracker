@@ -41,18 +41,8 @@ async function main() {
 
 	console.log('Created task types:', taskTypes);
 
-
-	// Create a sample user
-	const user = await prisma.user.upsert({
-		where: { email: 'demo@example.com' },
-		update: {},
-		create: {
-			email: 'demo@example.com',
-			name: 'Demo User'
-		}
-	});
-
-	console.log('Created user:', user);
+	// Users are now created via Kinde authentication
+	console.log('Database seeded successfully!');
 }
 
 main()
