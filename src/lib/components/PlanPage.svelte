@@ -58,6 +58,21 @@
 	let hasUnsavedChanges = $state(false);
 	let saveError = $state<string | null>(null);
 
+	// Derived state: Get current task values (original or edited)
+	let currentTasks = $derived(
+		programDetails?.tasks.map(t => ({
+			...t,
+			time_estimate: editingTasks[t.id || '']?.time_estimate !== undefined
+				? editingTasks[t.id || ''].time_estimate
+				: t.time_estimate
+		})) || []
+	);
+
+	// Derived state: Calculate remaining time from current task values
+	let remainingTime = $derived(
+		currentTasks.filter(t => !t.status).reduce((sum, t) => sum + (t.time_estimate || 0), 0)
+	);
+
 	// Initialize program details from server data
 	if (application) {
 		programDetails = {
@@ -252,35 +267,39 @@
 		console.log('📊 Current editingTasks:', editingTasks);
 	}
 
-	function saveAllChanges() {
-		console.log('🔄 Save button clicked');
-		console.log('📊 hasUnsavedChanges:', hasUnsavedChanges);
-		console.log('📝 editingTasks:', editingTasks);
-		console.log('🔢 editingTasks keys:', Object.keys(editingTasks));
-		
-		if (!hasUnsavedChanges || Object.keys(editingTasks).length === 0) {
-			console.log('❌ No changes to save');
-			return;
-		}
+	// Handle save changes with optimistic UI update
+	function handleSaveChanges() {
+		console.log('🔄 Save changes enhance triggered');
+		return async ({ result }: { result: any }) => {
+			console.log('📥 Save result:', result);
 
-		console.log('✅ Proceeding with save...');
-		saveError = null;
-		
-		// Create and submit a form to the server
-		const form = document.createElement('form');
-		form.method = 'POST';
-		form.action = '?/updateTasks';
-		form.style.display = 'none';
-
-		const tasksInput = document.createElement('input');
-		tasksInput.name = 'tasks';
-		tasksInput.value = JSON.stringify(editingTasks);
-		form.appendChild(tasksInput);
-
-		console.log('📤 Submitting form with data:', JSON.stringify(editingTasks));
-		document.body.appendChild(form);
-		form.submit();
-		document.body.removeChild(form);
+			if (result.type === 'success') {
+				console.log('✅ Save successful');
+				// Apply changes to programDetails optimistically
+				if (programDetails) {
+					Object.entries(editingTasks).forEach(([taskId, updates]: [string, any]) => {
+						const task = programDetails.tasks.find(t => t.id === taskId);
+						if (task) {
+							if (updates.title !== undefined) task.title = updates.title;
+							if (updates.description !== undefined) task.description = updates.description;
+							if (updates.time_estimate !== undefined) task.time_estimate = updates.time_estimate;
+							if (updates.order !== undefined) task.order = updates.order;
+							if (updates.url !== undefined) task.url = updates.url;
+						}
+					});
+					recalcSummary();
+				}
+				// Clear editing state
+				editingTasks = {};
+				hasUnsavedChanges = false;
+				editingTask = null;
+				saveError = null;
+			} else if (result.type === 'failure') {
+				console.log('❌ Save failed:', result.data);
+				saveError = result.data?.error || 'Failed to save changes';
+			}
+			// Don't call update() - we already updated UI optimistically
+		};
 	}
 
 	function cancelEditing() {
@@ -288,6 +307,26 @@
 		editingTasks = {};
 		hasUnsavedChanges = false;
 		saveError = null;
+	}
+
+	// Delete task handler with optimistic UI update
+	function handleDeleteTask(taskId: string) {
+		return async ({ result }: { result: any }) => {
+			if (result.type === 'success') {
+				// Optimistically update local state - no page reload
+				if (programDetails) {
+					programDetails.tasks = programDetails.tasks.filter(t => t.id !== taskId);
+					recalcSummary();
+					// Clean up any pending edits for this deleted task
+					if (editingTasks[taskId]) {
+						delete editingTasks[taskId];
+						// Recheck if we still have unsaved changes
+						hasUnsavedChanges = Object.keys(editingTasks).length > 0;
+					}
+				}
+			}
+			// Don't call update() - we already updated UI optimistically
+		};
 	}
 
 	// Navigation functions
@@ -368,18 +407,21 @@
 										<div>
 											<h5 class="text-sm font-semibold mb-1 text-gray-800">Remaining Time:</h5>
 											<div class="text-xl font-bold text-red-600">
-												{programDetails.tasks.filter(t => !t.status).reduce((sum, t) => sum + (t.time_estimate || 0), 0)}h
+												{remainingTime}h
 											</div>
 										</div>
 										{#if hasUnsavedChanges}
 											<div class="flex gap-1">
-												<button 
-													onclick={saveAllChanges}
-													class="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
-												>
-													Save
-												</button>
-												<button 
+												<form method="POST" action="?/updateTasks" use:enhance={handleSaveChanges} class="inline">
+													<input type="hidden" name="tasks" value={JSON.stringify(editingTasks)} />
+													<button
+														type="submit"
+														class="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
+													>
+														Save
+													</button>
+												</form>
+												<button
 													onclick={cancelEditing}
 													class="bg-gray-400 text-white px-2 py-1 rounded text-xs hover:bg-gray-500"
 												>
@@ -503,9 +545,9 @@
 											</a>
 										</div>
 									{/if}
-									<form method="POST" action="?/deleteTask" class="absolute right-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity inline">
+									<form method="POST" action="?/deleteTask" use:enhance={() => handleDeleteTask(task.id || '')} class="absolute right-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity inline">
 										<input type="hidden" name="taskId" value={task.id} />
-										<button 
+										<button
 											type="submit"
 											class="text-red-600 hover:text-red-800 text-xl font-bold"
 										>
