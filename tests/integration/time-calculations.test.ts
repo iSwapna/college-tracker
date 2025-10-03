@@ -180,8 +180,7 @@ describe('Time Calculations', () => {
 
       const result = await calculateWeeklyPlan(testUserId);
 
-      expect(result.actualWorkTime).toBe(10); // Actual pending time
-      expect(result.totalWorkTime).toBe(11); // 10 * 1.1 buffer
+      expect(result.totalWorkTime).toBe(10); // Total work time across all tasks
     });
 
     it('should count remaining tasks correctly', async () => {

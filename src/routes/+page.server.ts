@@ -18,7 +18,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 				weeklyPlan: null,
 				currentWeekTasks: [],
 				overallProgress: { essays: 0, notifications: 0 },
-				actualWorkTime: 0,
 				totalWorkTime: 0,
 				allPendingTasks: []
 			};
@@ -73,7 +72,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 			weeklyPlan: planData.weeklyPlan,
 			currentWeekTasks: planData.currentWeekTasks,
 			overallProgress: planData.overallProgress,
-			actualWorkTime: planData.actualWorkTime,
 			totalWorkTime: planData.totalWorkTime,
 			totalNotifications: planData.totalNotifications,
 			allPendingTasks: pendingTasksInOrder,
@@ -87,7 +85,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 			weeklyPlan: null,
 			currentWeekTasks: [],
 			overallProgress: { essays: 0, notifications: 0 },
-			actualWorkTime: 0,
 			totalWorkTime: 0,
 			allPendingTasks: []
 		};

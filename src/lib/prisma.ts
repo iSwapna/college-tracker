@@ -108,16 +108,16 @@ export async function calculateWeeklyPlan(userId: string) {
 
 	// Calculate total work time from ALL tasks with time estimates (completed + pending)
 	const allUserTasksForTime = await prisma.task.findMany({
-		where: { 
+		where: {
 			application: { userId },
 		},
 		include: { taskType: true }
 	});
-	
-	const actualWorkTime = allUserTasksForTime
+
+	const totalWorkTime = allUserTasksForTime
 		.filter(task => task.timeEstimate && task.timeEstimate > 0)
 		.reduce((sum, task) => sum + (task.timeEstimate || 0), 0);
-	const bufferedWorkTime = actualWorkTime * 1.1;
+	const bufferedWorkTime = totalWorkTime * 1.1;
 
 	// Get notification tasks (but we won't include them in the calendar)
 	const notificationTasks = applications.flatMap(app => 
@@ -162,83 +162,132 @@ export async function calculateWeeklyPlan(userId: string) {
 
 	return {
 		weeklyPlan,
-		actualWorkTime, // Show user the actual pending time
-		totalWorkTime: bufferedWorkTime, // Keep for backward compatibility  
+		totalWorkTime, // Total work time across all tasks (completed + pending)
 		totalNotifications: notificationTasks.length,
 		overallProgress,
 		currentWeekTasks
 	};
 }
 
-// Helper function to distribute work across weeks
-function createWeeklyDistribution(applications: any[], totalBufferedTime: number) {
-	const weeks = [];
-	const now = new Date();
-	
-	// Find earliest deadline and calculate weeks needed
-	const earliestDeadline = applications
-		.map(app => new Date(app.deadline))
-		.sort((a, b) => a.getTime() - b.getTime())[0];
-	
-	if (!earliestDeadline) return [];
+// Helper: Calculate weeks until a deadline (with 2-day buffer before deadline)
+function calculateWeeksUntilDeadline(deadline: Date, referenceDate: Date = new Date()): number {
+	const deadlineWithBuffer = new Date(deadline);
+	deadlineWithBuffer.setDate(deadlineWithBuffer.getDate() - 2); // 2-day buffer
 
-	// Calculate weeks until earliest deadline minus 2-day buffer
-	const bufferDate = new Date(earliestDeadline);
-	bufferDate.setDate(bufferDate.getDate() - 2);
-	
-	const weeksAvailable = Math.max(1, 
-		Math.ceil((bufferDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 7))
+	const weeksUntil = Math.max(
+		1,
+		Math.ceil((deadlineWithBuffer.getTime() - referenceDate.getTime()) / (1000 * 60 * 60 * 24 * 7))
 	);
 
-	// Get all work tasks (non-zero time) sorted by deadline priority
-	const workTasks = applications.flatMap(app => 
-		app.tasks
-			.filter((task: any) => task.timeEstimate && task.timeEstimate > 0)
-			.map((task: any) => ({
-				...task,
-				applicationDeadline: app.deadline,
-				schoolName: app.schoolName
-			}))
-	).sort((a, b) => new Date(a.applicationDeadline).getTime() - new Date(b.applicationDeadline).getTime());
+	return weeksUntil;
+}
 
-	// Calculate target hours per week
-	const targetHoursPerWeek = Math.ceil(totalBufferedTime / weeksAvailable);
+// Helper: Calculate total time for remaining tasks (from index onwards)
+function calculateRemainingTime(taskList: any[], startIndex: number): number {
+	return taskList
+		.slice(startIndex)
+		.reduce((sum, task) => sum + (task.timeEstimate || 0), 0);
+}
 
-	// Distribute work tasks across weeks
-	let currentWeekIndex = 0;
-	let currentWeekHours = 0;
-	
-	for (let i = 0; i < weeksAvailable; i++) {
-		const weekStart = new Date(now);
-		weekStart.setDate(weekStart.getDate() + (i * 7));
-		weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
-		
-		const weekEnd = new Date(weekStart);
-		weekEnd.setDate(weekEnd.getDate() + 6);
+// Helper: Calculate current week's total hours
+function calculateWeekHours(weekTasks: any[]): number {
+	return weekTasks.reduce((sum, task) => sum + (task.timeEstimate || 0), 0);
+}
 
-		weeks.push({
-			weekNumber: i + 1,
-			startDate: weekStart,
-			endDate: weekEnd,
-			tasks: [],
-			totalHours: 0
-		});
+// Helper: Create week object for calendar display
+function createWeekObject(weekNumber: number, weekTasks: any[], referenceDate: Date) {
+	const weekStart = new Date(referenceDate);
+	weekStart.setDate(weekStart.getDate() + ((weekNumber - 1) * 7));
+	weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
+
+	const weekEnd = new Date(weekStart);
+	weekEnd.setDate(weekEnd.getDate() + 6);
+
+	return {
+		weekNumber,
+		startDate: weekStart,
+		endDate: weekEnd,
+		tasks: weekTasks,
+		totalHours: calculateWeekHours(weekTasks)
+	};
+}
+
+// Helper function to distribute work across weeks using sequential filling algorithm
+function createWeeklyDistribution(applications: any[], totalBufferedTime: number) {
+	const now = new Date();
+
+	// Find latest deadline to determine total weeks available
+	const latestDeadline = applications
+		.map(app => new Date(app.deadline))
+		.sort((a, b) => b.getTime() - a.getTime())[0];
+
+	if (!latestDeadline) return [];
+
+	const maxWeeks = calculateWeeksUntilDeadline(latestDeadline, now);
+
+	// Build task list: all work tasks sorted by application deadline (earliest first)
+	const taskList = applications
+		.flatMap(app =>
+			app.tasks
+				.filter((task: any) => task.timeEstimate && task.timeEstimate > 0)
+				.map((task: any) => ({
+					...task,
+					applicationDeadline: app.deadline,
+					schoolName: app.schoolName,
+					schoolId: app.id,
+					deadlineWeek: calculateWeeksUntilDeadline(app.deadline, now)
+				}))
+		)
+		.sort((a, b) => new Date(a.applicationDeadline).getTime() - new Date(b.applicationDeadline).getTime());
+
+	if (taskList.length === 0) return [];
+
+	// SEQUENTIAL FILLING ALGORITHM (from TODO.md)
+	// 1. Calculate initial average weekly capacity: avg = (total hours * 1.1) / last deadline
+	let avgWeeklyCapacity = totalBufferedTime / maxWeeks;
+
+	// 2. Initialize scheduling state
+	const weeklyTasks: { [week: number]: any[] } = {};
+	let currWeek = 1;
+	let taskIndex = 0;
+
+	// 3. Sequential scheduling loop
+	while (taskIndex < taskList.length) {
+		const currentTask = taskList[taskIndex];
+
+		// Initialize current week if needed
+		if (!weeklyTasks[currWeek]) {
+			weeklyTasks[currWeek] = [];
+		}
+
+		const currentWeekHours = calculateWeekHours(weeklyTasks[currWeek]);
+
+		// CASE 1: Task deadline is this week or past - MUST schedule immediately
+		if (currentTask.deadlineWeek <= currWeek) {
+			weeklyTasks[currWeek].push(currentTask);
+			taskIndex++;
+
+			// Recalculate average for remaining tasks
+			const remainingTime = calculateRemainingTime(taskList, taskIndex);
+			const remainingWeeks = Math.max(1, maxWeeks - currWeek);
+			avgWeeklyCapacity = (remainingTime * 1.1) / remainingWeeks;
+		}
+		// CASE 2: Task fits within current week's average capacity
+		else if (currentWeekHours + currentTask.timeEstimate < avgWeeklyCapacity) {
+			weeklyTasks[currWeek].push(currentTask);
+			taskIndex++;
+		}
+		// CASE 3: Current week is full - move to next week
+		else {
+			currWeek++;
+		}
 	}
 
-	// Distribute work tasks
-	for (const task of workTasks) {
-		if (currentWeekIndex < weeks.length) {
-			const week = weeks[currentWeekIndex];
-			week.tasks.push(task);
-			week.totalHours += task.timeEstimate || 0;
-			currentWeekHours += task.timeEstimate || 0;
-
-			// Move to next week if we've hit our target hours
-			if (currentWeekHours >= targetHoursPerWeek && currentWeekIndex < weeks.length - 1) {
-				currentWeekIndex++;
-				currentWeekHours = 0;
-			}
-		}
+	// Convert weeklyTasks map to week objects for display
+	const weeks = [];
+	for (let i = 1; i <= maxWeeks; i++) {
+		const tasks = weeklyTasks[i] || [];
+		weeks.push(createWeekObject(i, tasks, now));
 	}
 
 	return weeks;

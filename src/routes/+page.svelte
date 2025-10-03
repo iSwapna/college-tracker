@@ -17,11 +17,11 @@
 
 	// Helper function to calculate time progress percentage
 	function getTimeProgressPercentage(): number {
-		if (!data.actualWorkTime || data.actualWorkTime === 0) return 0;
+		if (!data.totalWorkTime || data.totalWorkTime === 0) return 0;
 		const completedWorkTime = (data.allTasks || [])
 			.filter((task: any) => task.status === 'completed' && task.timeEstimate > 0)
 			.reduce((sum: number, task: any) => sum + (task.timeEstimate || 0), 0);
-		return Math.round((completedWorkTime / data.actualWorkTime) * 100);
+		return Math.round((completedWorkTime / data.totalWorkTime) * 100);
 	}
 
 	// Helper function to calculate task progress percentage  
@@ -36,7 +36,7 @@
 		const completedWorkTime = (data.allTasks || [])
 			.filter((task: any) => task.status === 'completed' && task.timeEstimate > 0)
 			.reduce((sum: number, task: any) => sum + (task.timeEstimate || 0), 0);
-		return data.actualWorkTime - completedWorkTime;
+		return data.totalWorkTime - completedWorkTime;
 	}
 
 	// Helper function to calculate remaining tasks
@@ -443,7 +443,7 @@
 															<div class="text-xs p-2 bg-white rounded border-l-2 border-gray-500">
 																<div class="font-medium truncate">{task.title}</div>
 																<div class="text-gray-600 truncate">{task.schoolName}</div>
-																<div class="text-gray-500">{task.timeEstimate || 0}h</div>
+																<div class="text-gray-500">{task.timeEstimate || 0}h • Due {new Date(task.applicationDeadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
 															</div>
 														{/each}
 													</div>
@@ -471,7 +471,7 @@
 									</div>
 									<div>
 										<div class="font-bold text-orange-600">
-											{Math.ceil(data.actualWorkTime / data.weeklyPlan.length)}h
+											{Math.ceil(data.totalWorkTime / data.weeklyPlan.length)}h
 										</div>
 										<div class="text-xs text-gray-600">Avg/Week</div>
 									</div>
