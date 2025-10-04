@@ -233,15 +233,18 @@
 	// Task editing functions
 	function startEditingTask(taskId: string, task: TaskItem) {
 		editingTask = taskId;
-		editingTasks[taskId] = {
-			title: task.title,
-			description: task.description,
-			order: task.order,
-			time_estimate: task.time_estimate,
-			url: task.url,
-			task_type_id: task.task_type_id
-		};
-		hasUnsavedChanges = true;
+		// Only initialize if not already editing this task
+		if (!editingTasks[taskId]) {
+			editingTasks[taskId] = {
+				title: task.title,
+				description: task.description,
+				order: task.order,
+				time_estimate: task.time_estimate,
+				url: task.url,
+				task_type_id: task.task_type_id
+			};
+			hasUnsavedChanges = true;
+		}
 	}
 
 	function updateEditingField(taskId: string, field: string, value: any) {
