@@ -125,7 +125,10 @@ export const actions: Actions = {
 					status: 'pending',
 					url: (application as any)?.url, // inherit application URL
 					...(order && order.trim() ? { order: parseInt(order) } : {})
-				} as any
+				} as any,
+				include: {
+					taskType: true
+				}
 			});
 
 			return { success: true, task };
@@ -321,6 +324,9 @@ export const actions: Actions = {
 				}
 				if (data.url !== undefined) {
 					updateData.url = data.url.trim() || null;
+				}
+				if (data.task_type_id !== undefined && data.task_type_id) {
+					updateData.taskTypeId = data.task_type_id;
 				}
 
 				// Only update if there are actual changes

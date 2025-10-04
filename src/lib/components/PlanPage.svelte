@@ -238,7 +238,8 @@
 			description: task.description,
 			order: task.order,
 			time_estimate: task.time_estimate,
-			url: task.url
+			url: task.url,
+			task_type_id: task.task_type_id
 		};
 		hasUnsavedChanges = true;
 	}
@@ -257,7 +258,8 @@
 				description: task.description,
 				order: task.order,
 				time_estimate: task.time_estimate,
-				url: task.url
+				url: task.url,
+				task_type_id: task.task_type_id
 			};
 			console.log('🆕 Created new editing entry for task:', taskId);
 		}
@@ -285,6 +287,12 @@
 							if (updates.time_estimate !== undefined) task.time_estimate = updates.time_estimate;
 							if (updates.order !== undefined) task.order = updates.order;
 							if (updates.url !== undefined) task.url = updates.url;
+							if (updates.task_type_id !== undefined) {
+								task.task_type_id = updates.task_type_id;
+								// Update the task_type display name
+								const taskType = taskTypes.find(tt => tt.id === updates.task_type_id);
+								if (taskType) task.task_type = taskType.type;
+							}
 						}
 					});
 					recalcSummary();
@@ -514,7 +522,19 @@
 											}}
 											onfocus={() => startEditingTask(task.id || '', task)}
 										/>
-										<span class="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">{task.task_type}</span>
+										<select
+											value={editingTasks[task.id || '']?.task_type_id ?? task.task_type_id}
+											class="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded border-0 hover:bg-gray-200 focus:bg-gray-200 focus:ring-1 focus:ring-blue-500"
+											onchange={(e) => {
+												const target = e.target as HTMLSelectElement;
+												updateEditingField(task.id || '', 'task_type_id', target.value);
+											}}
+											onfocus={() => startEditingTask(task.id || '', task)}
+										>
+											{#each taskTypes as taskType}
+												<option value={taskType.id}>{taskType.type}</option>
+											{/each}
+										</select>
 									</div>
 									<input
 										type="text"
