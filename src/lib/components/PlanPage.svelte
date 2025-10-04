@@ -503,16 +503,19 @@
 									/>
 								</td>
 								<td class="px-4 py-2 font-medium relative">
-									<input
-										type="text"
-										value={editingTasks[task.id || '']?.title ?? task.title}
-										class="w-full text-lg font-medium border-0 border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-0 bg-transparent px-0 py-1"
-										oninput={(e) => {
-											const target = e.target as HTMLInputElement;
-											updateEditingField(task.id || '', 'title', target.value);
-										}}
-										onfocus={() => startEditingTask(task.id || '', task)}
-									/>
+									<div class="flex items-center gap-2">
+										<input
+											type="text"
+											value={editingTasks[task.id || '']?.title ?? task.title}
+											class="flex-1 text-lg font-medium border-0 border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-0 bg-transparent px-0 py-1"
+											oninput={(e) => {
+												const target = e.target as HTMLInputElement;
+												updateEditingField(task.id || '', 'title', target.value);
+											}}
+											onfocus={() => startEditingTask(task.id || '', task)}
+										/>
+										<span class="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">{task.task_type}</span>
+									</div>
 									<input
 										type="text"
 										value={editingTasks[task.id || '']?.description ?? task.description ?? ''}

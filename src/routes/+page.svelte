@@ -208,7 +208,10 @@
 												{/if}
 												<div class="text-xs text-gray-500">#{task.globalOrder || index + 1}</div>
 												<div class="flex-1 min-w-0 cursor-move">
-													<div class="text-sm font-medium truncate {task.status === 'completed' ? 'line-through' : ''}">{task.title}</div>
+													<div class="flex items-center gap-2">
+														<div class="text-sm font-medium truncate {task.status === 'completed' ? 'line-through' : ''}">{task.title}</div>
+														<span class="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded shrink-0">{task.taskType?.type}</span>
+													</div>
 													<div class="text-xs text-gray-600 truncate {task.status === 'completed' ? 'line-through' : ''}">{task.schoolName}</div>
 												</div>
 											</div>
@@ -441,7 +444,10 @@
 													<div class="space-y-1 max-h-40 overflow-y-auto">
 														{#each week.tasks as task}
 															<div class="text-xs p-2 bg-white rounded border-l-2 border-gray-500">
-																<div class="font-medium truncate">{task.title}</div>
+																<div class="flex items-center gap-1.5">
+																	<div class="font-medium truncate flex-1">{task.title}</div>
+																	<span class="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded shrink-0">{task.taskType?.type}</span>
+																</div>
 																<div class="text-gray-600 truncate">{task.schoolName}</div>
 																<div class="text-gray-500">{task.timeEstimate || 0}h • Due {new Date(task.applicationDeadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
 															</div>

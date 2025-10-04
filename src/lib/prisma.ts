@@ -10,7 +10,9 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 // Helper functions for common operations
 export async function getUserApplicationsWithProgress(userId: string) {
-	return await prisma.application.findMany({
+	console.log('🔎 getUserApplicationsWithProgress called for userId:', userId);
+
+	const result = await prisma.application.findMany({
 		where: { userId },
 		include: {
 			tasks: {
@@ -25,6 +27,14 @@ export async function getUserApplicationsWithProgress(userId: string) {
 		},
 		orderBy: { deadline: 'asc' }
 	});
+
+	console.log('📦 getUserApplicationsWithProgress result:', result.length, 'applications');
+	result.forEach(app => {
+		console.log(`  - ${app.schoolName}: ${app.tasks.length} tasks`);
+		app.tasks.forEach(t => console.log(`    • ${t.title} [${t.taskType?.type}] - ${t.timeEstimate}h`));
+	});
+
+	return result;
 }
 
 export async function calculateUserTimeNeeded(userId: string) {
@@ -84,6 +94,8 @@ export async function calculateUserTimeNeeded(userId: string) {
 
 // Calculate weekly work plan with dynamic distribution
 export async function calculateWeeklyPlan(userId: string) {
+	console.log('🔍 calculateWeeklyPlan called for userId:', userId);
+
 	const applications = await prisma.application.findMany({
 		where: { userId },
 		include: {
@@ -95,6 +107,14 @@ export async function calculateWeeklyPlan(userId: string) {
 		},
 		orderBy: { deadline: 'asc' }
 	});
+
+	console.log('📚 Applications found:', applications.length);
+	console.log('📝 Applications with tasks:', applications.map(app => ({
+		school: app.schoolName,
+		deadline: app.deadline,
+		taskCount: app.tasks.length,
+		tasks: app.tasks.map(t => ({ title: t.title, type: t.taskType?.type, hours: t.timeEstimate, status: t.status }))
+	})));
 
 	if (applications.length === 0) {
 		return {
@@ -240,6 +260,9 @@ function createWeeklyDistribution(applications: any[], totalBufferedTime: number
 		)
 		.sort((a, b) => new Date(a.applicationDeadline).getTime() - new Date(b.applicationDeadline).getTime());
 
+	console.log('📅 Tasks to schedule:', taskList.length);
+	console.log('📋 Task details:', taskList.map(t => ({ title: t.title, hours: t.timeEstimate, deadlineWeek: t.deadlineWeek })));
+
 	if (taskList.length === 0) return [];
 
 	// SEQUENTIAL FILLING ALGORITHM (from TODO.md)
@@ -290,6 +313,8 @@ function createWeeklyDistribution(applications: any[], totalBufferedTime: number
 		weeks.push(createWeekObject(i, tasks, now));
 	}
 
+	console.log('📆 Weekly distribution:', weeks.map(w => ({ week: w.weekNumber, tasks: w.tasks.length, hours: w.totalHours })));
+
 	return weeks;
 }
 
@@ -314,13 +339,18 @@ function getCurrentWeekTasks(weeklyPlan: any[]) {
 }
 
 export async function getApplicationWithTasks(applicationId: string, userId: string) {
-	return await prisma.application.findFirst({
+	console.log('🔎 getApplicationWithTasks called:', { applicationId, userId });
+
+	const result = await prisma.application.findFirst({
 		where: {
 			id: applicationId,
 			userId: userId // Only return if user owns it
 		},
 		include: {
 			tasks: {
+				include: {
+					taskType: true
+				},
 				orderBy: [
 					{ order: 'asc' },
 					{ globalOrder: 'asc' }
@@ -329,6 +359,23 @@ export async function getApplicationWithTasks(applicationId: string, userId: str
 			user: true
 		}
 	});
+
+	if (result) {
+		console.log('📦 getApplicationWithTasks result:', {
+			school: result.schoolName,
+			taskCount: result.tasks.length,
+			tasks: result.tasks.map(t => ({
+				title: t.title,
+				type: t.taskType?.type,
+				hours: t.timeEstimate,
+				typeId: t.taskTypeId
+			}))
+		});
+	} else {
+		console.log('❌ getApplicationWithTasks: No application found');
+	}
+
+	return result;
 }
 
 export async function updateTaskStatus(taskId: string, status: string) {
