@@ -505,7 +505,7 @@
 										type="number"
 										value={editingTasks[task.id || '']?.order ?? task.order ?? index + 1}
 										min="1"
-										class="w-12 text-center text-sm border border-gray-300 rounded hover:border-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+										class="w-16 text-center text-sm border border-gray-300 rounded hover:border-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 px-2 py-1"
 										oninput={(e) => {
 											const target = e.target as HTMLInputElement;
 											updateEditingField(task.id || '', 'order', parseInt(target.value) || null);
