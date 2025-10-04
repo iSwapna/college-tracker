@@ -26,16 +26,21 @@
 	}
 
 	// Component calculates its own data
-	function getApplicationProgress(app: any): { completed: number; total: number; percentage: number } {
+	function getApplicationProgress(app: any): { completed: number; total: number; percentage: number; remainingTime: number } {
 		if (!app.tasks || app.tasks.length === 0) {
-			return { completed: 0, total: 0, percentage: 0 };
+			return { completed: 0, total: 0, percentage: 0, remainingTime: 0 };
 		}
-		
+
 		const completed = app.tasks.filter((task: any) => task.status).length;
 		const total = app.tasks.length;
 		const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-		
-		return { completed, total, percentage };
+
+		// Calculate remaining time from incomplete tasks
+		const remainingTime = app.tasks
+			.filter((task: any) => !task.status)
+			.reduce((sum: number, task: any) => sum + (task.time_estimate || 0), 0);
+
+		return { completed, total, percentage, remainingTime };
 	}
 
 	function getOverallTimeSummary(): { totalTime: number; remainingTasks: number; hasIncompleteTasks: boolean; completedTasks: number; totalTasks: number; percentage: number } {
@@ -237,11 +242,16 @@
 												<span class="text-gray-600"><span class="text-red-600 font-bold">{progress.total - progress.completed}</span> remaining</span>
 											</div>
 											<div class="w-full bg-gray-200 rounded-full h-2">
-												<div 
-													class="bg-green-600 h-2 rounded-full transition-all duration-300" 
+												<div
+													class="bg-green-600 h-2 rounded-full transition-all duration-300"
 													style="width: {progress.percentage}%"
 												></div>
 											</div>
+											{#if progress.remainingTime > 0}
+												<div class="text-xs text-gray-600 mt-1">
+													<span class="font-semibold text-orange-600">{progress.remainingTime}h</span> remaining
+												</div>
+											{/if}
 										</div>
 									{:else}
 										<span class="capitalize">{app.status.replace('_', ' ')}</span>
