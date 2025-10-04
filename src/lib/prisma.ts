@@ -295,8 +295,8 @@ function createWeeklyDistribution(applications: any[], totalBufferedTime: number
 			const remainingWeeks = Math.max(1, maxWeeks - currWeek);
 			avgWeeklyCapacity = (remainingTime * 1.1) / remainingWeeks;
 		}
-		// CASE 2: Task fits within current week's average capacity
-		else if (currentWeekHours + currentTask.timeEstimate < avgWeeklyCapacity) {
+		// CASE 2: Task fits within current week's average capacity OR week is empty
+		else if (currentWeekHours + currentTask.timeEstimate < avgWeeklyCapacity || currentWeekHours === 0) {
 			weeklyTasks[currWeek].push(currentTask);
 			taskIndex++;
 		}
@@ -415,7 +415,11 @@ export async function createApplication(data: {
 			} : undefined
 		},
 		include: {
-			tasks: true
+			tasks: {
+				include: {
+					taskType: true
+				}
+			}
 		}
 	});
 }

@@ -399,6 +399,56 @@ describe('Sequential Filling Scheduling Algorithm', () => {
     });
   });
 
+  describe('Empty week handling', () => {
+    it('should schedule at least one task per week even if it exceeds average capacity', async () => {
+      const deadline = new Date();
+      deadline.setDate(deadline.getDate() + 28); // 4 weeks
+
+      await createApplication({
+        userId: testUserId,
+        schoolName: 'Test School',
+        deadline,
+        tasks: [
+          {
+            title: 'Large Task 1',
+            taskTypeId: taskTypeIds['essay-draft'],
+            timeEstimate: 8, // Large task
+            globalOrder: 1
+          },
+          {
+            title: 'Large Task 2',
+            taskTypeId: taskTypeIds['essay-final'],
+            timeEstimate: 8, // Large task
+            globalOrder: 2
+          },
+          {
+            title: 'Small Task',
+            taskTypeId: taskTypeIds['timebox'],
+            timeEstimate: 2,
+            globalOrder: 3
+          }
+        ]
+      });
+
+      const result = await calculateWeeklyPlan(testUserId);
+
+      // Calculate average: (8 + 8 + 2) * 1.1 / 4 weeks = ~5 hours/week
+      // Large Task 1 (8h) exceeds avg, but should still schedule in week 1 (empty week rule)
+      // Large Task 2 (8h) exceeds avg, but should still schedule in week 2 (empty week rule)
+      // Small Task (2h) fits in avg, schedules in next available week
+
+      const week1Tasks = result.weeklyPlan.find(w => w.weekNumber === 1)?.tasks || [];
+      const week2Tasks = result.weeklyPlan.find(w => w.weekNumber === 2)?.tasks || [];
+
+      // Week 1 should have at least one task (Large Task 1)
+      expect(week1Tasks.length).toBeGreaterThanOrEqual(1);
+      expect(week1Tasks.some(t => t.title === 'Large Task 1')).toBe(true);
+
+      // Week 2 should have at least one task (Large Task 2 or Small Task)
+      expect(week2Tasks.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
   describe('Urgent deadline handling', () => {
     it('should force schedule tasks with imminent deadlines even if week is full', async () => {
       const urgentDeadline = new Date();

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Header from '$lib/Header.svelte';
+	import { filterTasksByTab } from '$lib/taskFilters';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -48,40 +49,10 @@
 	// Filter tasks by tab and completion status
 	let filteredTasks = $derived(() => {
 		const allTasks = data.allPendingTasks || [];
-		
-		// Filter by tab type with priority order to avoid overlaps
-		let tabTasks: any[] = [];
-		switch(activeTab) {
-			case 'essays':
-				tabTasks = allTasks.filter((task: any) => 
-					task.taskType?.type === 'essay-draft' || task.taskType?.type === 'essay-final'
-				);
-				break;
-			case 'tests':
-				tabTasks = allTasks.filter((task: any) => 
-					(task.title?.toLowerCase().includes('test') || 
-					task.title?.toLowerCase().includes('transcript')) &&
-					!task.title?.toLowerCase().includes('rest of form')
-				);
-				break;
-			case 'recommendations':
-				tabTasks = allTasks.filter((task: any) => 
-					(task.title?.toLowerCase().includes('recommendation') ||
-					task.title?.toLowerCase().includes('reference')) &&
-					!task.title?.toLowerCase().includes('rest of form')
-				);
-				break;
-			case 'forms':
-				tabTasks = allTasks.filter((task: any) => 
-					task.title?.toLowerCase().includes('rest of form')
-				);
-				break;
-			default:
-				tabTasks = allTasks;
-		}
-		
+		const tabTasks = filterTasksByTab(allTasks, activeTab);
+
 		// Filter by completion status
-		return hideCompleted 
+		return hideCompleted
 			? tabTasks.filter((task: any) => task.status !== 'completed')
 			: tabTasks;
 	});
